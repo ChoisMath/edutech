@@ -49,6 +49,7 @@ function initializeEventListeners() {
     
     // 썸네일 업로드 관련
     initializeThumbnailUpload();
+    initializeEditThumbnailUpload();
     
     // 모달 외부 클릭시 닫기
     addModal.addEventListener('click', function(e) {
@@ -322,7 +323,7 @@ function closeAddModal() {
 
 // 상세 모달 열기
 function openDetailModal(card) {
-    document.getElementById('detailTitle').textContent = card.webpage_name;
+    // 제목은 이제 상세 내용에서 표시하므로 여기서는 제거
     
     const detailContent = document.getElementById('detailContent');
     detailContent.innerHTML = `
@@ -339,11 +340,17 @@ function openDetailModal(card) {
                 </button>
             </div>
 
-            ${card.thumbnail_url ? `
-                <div class="relative h-64 bg-gray-200 rounded-lg overflow-hidden">
-                    <img src="${card.thumbnail_url}" alt="${card.webpage_name}" class="w-full h-full object-cover">
+            <!-- 썸네일과 제목을 함께 배치 -->
+            <div class="flex items-start gap-3 mb-6">
+                ${card.thumbnail_url ? `
+                    <div class="flex-shrink-0">
+                        <img src="${card.thumbnail_url}" alt="${card.webpage_name}" class="w-16 h-16 object-cover rounded-lg">
+                    </div>
+                ` : ''}
+                <div class="flex-1">
+                    <h2 class="text-2xl font-bold text-gray-800">${card.webpage_name}</h2>
                 </div>
-            ` : ''}
+            </div>
             
             <div>
                 <h3 class="text-lg font-semibold text-gray-800 mb-2">웹사이트 정보</h3>
@@ -523,6 +530,21 @@ function openEditModal(card) {
     document.getElementById('editCardSubjects').value = card.useful_subjects ? card.useful_subjects.join(', ') : '';
     document.getElementById('editCardMeaning').value = card.educational_meaning || '';
     
+    // 기존 썸네일 설정
+    const editThumbnailUrl = document.getElementById('editThumbnailUrl');
+    const editThumbnailPreview = document.getElementById('editThumbnailPreview');
+    const editUploadArea = document.getElementById('editUploadArea');
+    const editPreviewImage = document.getElementById('editPreviewImage');
+    
+    if (card.thumbnail_url) {
+        editThumbnailUrl.value = card.thumbnail_url;
+        editPreviewImage.src = card.thumbnail_url;
+        editThumbnailPreview.classList.remove('hidden');
+        editUploadArea.classList.add('hidden');
+    } else {
+        resetEditThumbnailUpload();
+    }
+    
     editModal.classList.remove('hidden');
     closeDetailModal();
 }
@@ -562,7 +584,8 @@ async function handleEditCard(e) {
             webpage_name: document.getElementById('editCardName').value,
             user_summary: document.getElementById('editCardSummary').value,
             useful_subjects: document.getElementById('editCardSubjects').value.split(',').map(s => s.trim()).filter(s => s),
-            educational_meaning: document.getElementById('editCardMeaning').value
+            educational_meaning: document.getElementById('editCardMeaning').value,
+            thumbnail_url: document.getElementById('editThumbnailUrl').value
         };
         
         const response = await fetch(`/api/cards/${cardId}`, {
@@ -636,4 +659,123 @@ async function handleDeleteCard() {
         confirmButton.textContent = originalText;
         confirmButton.disabled = false;
     }
+}
+
+// 편집 썸네일 업로드 초기화
+function initializeEditThumbnailUpload() {
+    const editThumbnailFile = document.getElementById('editThumbnailFile');
+    const editThumbnailPreview = document.getElementById('editThumbnailPreview');
+    const editUploadArea = document.getElementById('editUploadArea');
+    const editPreviewImage = document.getElementById('editPreviewImage');
+    const editRemoveThumbnail = document.getElementById('editRemoveThumbnail');
+    const editThumbnailUrl = document.getElementById('editThumbnailUrl');
+    
+    // 파일 선택 시 처리
+    editThumbnailFile.addEventListener('change', handleEditThumbnailUpload);
+    
+    // 이미지 제거 버튼
+    editRemoveThumbnail.addEventListener('click', function() {
+        resetEditThumbnailUpload();
+    });
+    
+    // 드래그 앤 드롭 처리
+    const editDropArea = editThumbnailPreview.parentElement;
+    
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        editDropArea.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+        editDropArea.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        editDropArea.addEventListener(eventName, unhighlight, false);
+    });
+    
+    editDropArea.addEventListener('drop', handleEditDrop, false);
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    function highlight(e) {
+        editDropArea.classList.add('border-blue-500', 'bg-blue-50');
+    }
+    
+    function unhighlight(e) {
+        editDropArea.classList.remove('border-blue-500', 'bg-blue-50');
+    }
+    
+    function handleEditDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        
+        if (files.length > 0) {
+            editThumbnailFile.files = files;
+            handleEditThumbnailUpload({ target: { files: files } });
+        }
+    }
+}
+
+// 편집 썸네일 업로드 처리
+async function handleEditThumbnailUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    // 파일 타입 검증
+    if (!file.type.startsWith('image/')) {
+        alert('이미지 파일만 업로드할 수 있습니다.');
+        return;
+    }
+    
+    // 파일 크기 검증 (16MB)
+    if (file.size > 16 * 1024 * 1024) {
+        alert('파일 크기는 16MB를 초과할 수 없습니다.');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('thumbnail', file);
+    
+    try {
+        const response = await fetch('/api/upload-thumbnail', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // 미리보기 표시
+            const editPreviewImage = document.getElementById('editPreviewImage');
+            const editThumbnailPreview = document.getElementById('editThumbnailPreview');
+            const editUploadArea = document.getElementById('editUploadArea');
+            const editThumbnailUrl = document.getElementById('editThumbnailUrl');
+            
+            editPreviewImage.src = result.url;
+            editThumbnailUrl.value = result.url;
+            editThumbnailPreview.classList.remove('hidden');
+            editUploadArea.classList.add('hidden');
+        } else {
+            alert(result.error || '이미지 업로드에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('Error uploading thumbnail:', error);
+        alert('이미지 업로드에 실패했습니다.');
+    }
+}
+
+// 편집 썸네일 업로드 초기화
+function resetEditThumbnailUpload() {
+    const editThumbnailFile = document.getElementById('editThumbnailFile');
+    const editThumbnailPreview = document.getElementById('editThumbnailPreview');
+    const editUploadArea = document.getElementById('editUploadArea');
+    const editThumbnailUrl = document.getElementById('editThumbnailUrl');
+    
+    editThumbnailFile.value = '';
+    editThumbnailUrl.value = '';
+    editThumbnailPreview.classList.add('hidden');
+    editUploadArea.classList.remove('hidden');
 }
