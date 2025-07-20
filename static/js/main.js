@@ -196,6 +196,10 @@ function createCardElement(card) {
         </div>
         
         <div class="flex flex-wrap gap-1 mb-2">
+            ${card.keyword ? 
+                `<span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">${card.keyword}</span>` : 
+                ''
+            }
             ${displayKeywords.map(keyword => 
                 `<span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">${keyword}</span>`
             ).join('')}
@@ -515,6 +519,7 @@ async function handleAddCard(e) {
             user_summary: document.getElementById('cardSummary').value,
             useful_subjects: document.getElementById('cardSubjects').value.split(',').map(s => s.trim()).filter(s => s),
             educational_meaning: document.getElementById('cardMeaning').value,
+            keyword: document.getElementById('cardKeyword').value,
             thumbnail_url: document.getElementById('thumbnailUrl').value
         };
         
@@ -552,6 +557,7 @@ function openEditModal(card) {
     document.getElementById('editCardName').value = card.webpage_name;
     document.getElementById('editCardSummary').value = card.user_summary || '';
     document.getElementById('editCardSubjects').value = card.useful_subjects ? card.useful_subjects.join(', ') : '';
+    document.getElementById('editCardKeyword').value = card.keyword || '';
     document.getElementById('editCardMeaning').value = card.educational_meaning || '';
     
     // 기존 썸네일 설정
@@ -609,6 +615,7 @@ async function handleEditCard(e) {
             user_summary: document.getElementById('editCardSummary').value,
             useful_subjects: document.getElementById('editCardSubjects').value.split(',').map(s => s.trim()).filter(s => s),
             educational_meaning: document.getElementById('editCardMeaning').value,
+            keyword: document.getElementById('editCardKeyword').value,
             thumbnail_url: document.getElementById('editThumbnailUrl').value
         };
         

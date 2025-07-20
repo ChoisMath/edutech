@@ -173,6 +173,7 @@ def cards():
             user_summary = data.get('user_summary', '')
             useful_subjects = data.get('useful_subjects', [])
             educational_meaning = data.get('educational_meaning', '')
+            keyword = data.get('keyword', '')
             
             if not url or not webpage_name:
                 return jsonify({'error': 'URL and webpage_name are required'}), 400
@@ -188,6 +189,7 @@ def cards():
                 'user_summary': user_summary,
                 'useful_subjects': useful_subjects,
                 'educational_meaning': educational_meaning,
+                'keyword': keyword,
                 'thumbnail_url': thumbnail_url,
             }
             
@@ -213,6 +215,7 @@ def card_operations(card_id):
             user_summary = data.get('user_summary', '')
             useful_subjects = data.get('useful_subjects', [])
             educational_meaning = data.get('educational_meaning', '')
+            keyword = data.get('keyword', '')
             
             if not url or not webpage_name:
                 return jsonify({'error': 'URL and webpage_name are required'}), 400
@@ -223,6 +226,7 @@ def card_operations(card_id):
                 'user_summary': user_summary,
                 'useful_subjects': useful_subjects,
                 'educational_meaning': educational_meaning,
+                'keyword': keyword,
                 'updated_at': 'now()'
             }
             
