@@ -173,8 +173,10 @@ def cards():
             user_summary = data.get('user_summary', '')
             useful_subjects = data.get('useful_subjects', [])
             educational_meaning = data.get('educational_meaning', '')
-            keyword_str = data.get('keyword', '')
-            keyword = [k.strip() for k in keyword_str.split(',') if k.strip()] if keyword_str else []
+            keyword = data.get('keyword', [])
+            # JavaScript에서 이미 배열로 전송되므로 추가 처리 불필요
+            if not isinstance(keyword, list):
+                keyword = []
             
             if not url or not webpage_name:
                 return jsonify({'error': 'URL and webpage_name are required'}), 400
@@ -216,8 +218,10 @@ def card_operations(card_id):
             user_summary = data.get('user_summary', '')
             useful_subjects = data.get('useful_subjects', [])
             educational_meaning = data.get('educational_meaning', '')
-            keyword_str = data.get('keyword', '')
-            keyword = [k.strip() for k in keyword_str.split(',') if k.strip()] if keyword_str else []
+            keyword = data.get('keyword', [])
+            # JavaScript에서 이미 배열로 전송되므로 추가 처리 불필요
+            if not isinstance(keyword, list):
+                keyword = []
             
             if not url or not webpage_name:
                 return jsonify({'error': 'URL and webpage_name are required'}), 400
