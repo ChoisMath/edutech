@@ -1,15 +1,29 @@
 import os
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
 from dotenv import load_dotenv
 from supabase import create_client, Client
 import openai
 import requests
 import re
 from urllib.parse import urlparse
+from werkzeug.utils import secure_filename
+import uuid
 
 load_dotenv()
 
 app = Flask(__name__)
+
+# 업로드 설정
+UPLOAD_FOLDER = 'static/uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+# 업로드 폴더 생성
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Supabase 설정
 supabase_url = os.getenv('NEXT_PUBLIC_SUPABASE_URL')
@@ -63,13 +77,18 @@ def cards():
             if not url or not webpage_name:
                 return jsonify({'error': 'URL and webpage_name are required'}), 400
             
+            # 썸네일 URL 처리
+            thumbnail_url = data.get('thumbnail_url', '')
+            if not thumbnail_url:
+                thumbnail_url = f"https://via.placeholder.com/400x300?text={webpage_name}"
+            
             new_card = {
                 'url': url,
                 'webpage_name': webpage_name,
                 'user_summary': user_summary,
                 'useful_subjects': useful_subjects,
                 'educational_meaning': educational_meaning,
-                'thumbnail_url': f"https://via.placeholder.com/400x300?text={webpage_name}",
+                'thumbnail_url': thumbnail_url,
             }
             
             result = supabase.table('edutech_cards').insert(new_card).execute()
@@ -200,6 +219,44 @@ def fetch_webpage_content(url):
     except Exception as e:
         print(f"Error fetching webpage: {e}")
         raise Exception('Failed to fetch webpage content')
+
+@app.route('/api/upload-thumbnail', methods=['POST'])
+def upload_thumbnail():
+    try:
+        if 'thumbnail' not in request.files:
+            return jsonify({'error': 'No file selected'}), 400
+        
+        file = request.files['thumbnail']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        if file and allowed_file(file.filename):
+            # 고유한 파일명 생성
+            file_extension = file.filename.rsplit('.', 1)[1].lower()
+            unique_filename = f"{uuid.uuid4().hex}.{file_extension}"
+            filename = secure_filename(unique_filename)
+            
+            # 파일 저장
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            
+            # 파일 URL 반환
+            file_url = f"/static/uploads/{filename}"
+            return jsonify({
+                'success': True,
+                'filename': filename,
+                'url': file_url
+            })
+        else:
+            return jsonify({'error': 'Invalid file type. Only PNG, JPG, JPEG, GIF, WebP allowed'}), 400
+            
+    except Exception as e:
+        print(f"Error uploading thumbnail: {e}")
+        return jsonify({'error': 'Failed to upload thumbnail'}), 500
+
+@app.route('/static/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
