@@ -39,9 +39,9 @@ CREATE INDEX IF NOT EXISTS idx_edutech_cards_ai_category ON edutech_cards(ai_cat
 CREATE INDEX IF NOT EXISTS idx_edutech_cards_useful_subjects ON edutech_cards USING GIN(useful_subjects);
 CREATE INDEX IF NOT EXISTS idx_edutech_cards_ai_keywords ON edutech_cards USING GIN(ai_keywords);
 
--- 전체 텍스트 검색을 위한 인덱스
+-- 전체 텍스트 검색을 위한 인덱스 (simple configuration 사용)
 CREATE INDEX IF NOT EXISTS idx_edutech_cards_search ON edutech_cards USING GIN(
-  to_tsvector('korean', 
+  to_tsvector('simple', 
     COALESCE(webpage_name, '') || ' ' || 
     COALESCE(user_summary, '') || ' ' || 
     COALESCE(ai_summary, '') || ' ' ||
