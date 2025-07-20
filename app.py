@@ -45,12 +45,17 @@ def index():
 def cards():
     if request.method == 'GET':
         try:
+            print("=== API /api/cards GET 요청 받음 ===")
+            
             if not supabase:
+                print("ERROR: Supabase 연결 없음")
                 return jsonify({'error': 'Database not configured'}), 500
                 
             search = request.args.get('search', '')
             category = request.args.get('category', '')
             subject = request.args.get('subject', '')
+            
+            print(f"검색 조건 - search: '{search}', category: '{category}', subject: '{subject}'")
             
             query = supabase.table('edutech_cards').select('*')
             
@@ -65,11 +70,21 @@ def cards():
             
             query = query.order('created_at', desc=True)
             
+            print("데이터베이스 쿼리 실행 중...")
             result = query.execute()
+            
+            card_count = len(result.data) if result.data else 0
+            print(f"조회된 카드 수: {card_count}")
+            
+            if card_count > 0:
+                print(f"첫 번째 카드: {result.data[0].get('webpage_name', 'Unknown')}")
+            
             return jsonify(result.data or [])
             
         except Exception as e:
-            print(f"Error fetching cards: {e}")
+            print(f"ERROR: 카드 조회 실패 - {e}")
+            import traceback
+            traceback.print_exc()
             return jsonify({'error': 'Failed to fetch cards'}), 500
     
     elif request.method == 'POST':

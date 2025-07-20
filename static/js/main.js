@@ -72,14 +72,38 @@ function initializeEventListeners() {
 // 카드 데이터 가져오기
 async function fetchCards() {
     try {
+        console.log('=== 카드 데이터 요청 시작 ===');
         const response = await fetch('/api/cards');
+        console.log('응답 상태:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const data = await response.json();
+        console.log('받은 데이터:', data);
+        console.log('카드 수:', Array.isArray(data) ? data.length : 0);
+        
         cards = Array.isArray(data) ? data : [];
         filterCards();
     } catch (error) {
-        console.error('Error fetching cards:', error);
+        console.error('ERROR: 카드 가져오기 실패:', error);
         cards = [];
         filterCards();
+        
+        // 사용자에게 오류 알림
+        const cardsGrid = document.getElementById('cardsGrid');
+        if (cardsGrid) {
+            cardsGrid.innerHTML = `
+                <div class="col-span-full text-center py-12 bg-red-50 rounded-lg">
+                    <p class="text-red-600 text-lg font-medium">카드를 불러오는데 실패했습니다</p>
+                    <p class="text-red-500 text-sm mt-2">오류: ${error.message}</p>
+                    <button onclick="fetchCards()" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                        다시 시도
+                    </button>
+                </div>
+            `;
+        }
     }
 }
 
