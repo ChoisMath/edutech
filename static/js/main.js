@@ -11,6 +11,8 @@ const searchInput = document.getElementById('searchInput');
 const addButton = document.getElementById('addButton');
 const addModal = document.getElementById('addModal');
 const detailModal = document.getElementById('detailModal');
+const editModal = document.getElementById('editModal');
+const deleteModal = document.getElementById('deleteModal');
 
 // 이벤트 리스너 설정
 document.addEventListener('DOMContentLoaded', function() {
@@ -32,9 +34,15 @@ function initializeEventListeners() {
     document.getElementById('closeModal').addEventListener('click', closeAddModal);
     document.getElementById('cancelButton').addEventListener('click', closeAddModal);
     document.getElementById('closeDetailModal').addEventListener('click', closeDetailModal);
+    document.getElementById('closeEditModal').addEventListener('click', closeEditModal);
+    document.getElementById('cancelEditButton').addEventListener('click', closeEditModal);
+    document.getElementById('closeDeleteModal').addEventListener('click', closeDeleteModal);
+    document.getElementById('cancelDeleteButton').addEventListener('click', closeDeleteModal);
     
     // 폼 제출
     document.getElementById('addCardForm').addEventListener('submit', handleAddCard);
+    document.getElementById('editCardForm').addEventListener('submit', handleEditCard);
+    document.getElementById('confirmDeleteButton').addEventListener('click', handleDeleteCard);
     
     // URL 입력시 중복 체크
     document.getElementById('cardUrl').addEventListener('input', handleUrlCheck);
@@ -49,6 +57,14 @@ function initializeEventListeners() {
     
     detailModal.addEventListener('click', function(e) {
         if (e.target === detailModal) closeDetailModal();
+    });
+    
+    editModal.addEventListener('click', function(e) {
+        if (e.target === editModal) closeEditModal();
+    });
+    
+    deleteModal.addEventListener('click', function(e) {
+        if (e.target === deleteModal) closeDeleteModal();
     });
 }
 
@@ -132,24 +148,27 @@ function renderCards() {
 // 카드 요소 생성
 function createCardElement(card) {
     const cardDiv = document.createElement('div');
-    cardDiv.className = 'bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer p-4 card-hover fade-in';
+    cardDiv.className = 'bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer p-3 card-hover fade-in';
     cardDiv.onclick = () => openDetailModal(card);
     
     const displayKeywords = card.ai_keywords?.slice(0, 3) || [];
     
     cardDiv.innerHTML = `
-        <div class="relative h-48 mb-4 bg-gray-200 rounded-md overflow-hidden">
-            ${card.thumbnail_url ? 
-                `<img src="${card.thumbnail_url}" alt="${card.webpage_name}" class="w-full h-full object-cover">` :
-                `<div class="w-full h-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
-                    <span class="text-gray-500 text-sm">No Image</span>
-                </div>`
-            }
+        <div class="flex items-start gap-3 mb-3">
+            <div class="flex-shrink-0">
+                ${card.thumbnail_url ? 
+                    `<img src="${card.thumbnail_url}" alt="${card.webpage_name}" class="w-12 h-12 object-cover rounded-lg">` :
+                    `<div class="w-12 h-12 bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center rounded-lg">
+                        <span class="text-gray-400 text-xs">No</span>
+                    </div>`
+                }
+            </div>
+            <div class="flex-1 min-w-0">
+                <h3 class="text-base font-semibold text-gray-800 mb-1 line-clamp-2">
+                    ${card.webpage_name}
+                </h3>
+            </div>
         </div>
-        
-        <h3 class="text-lg font-semibold text-gray-800 mb-2 line-clamp-2">
-            ${card.webpage_name}
-        </h3>
         
         <div class="flex flex-wrap gap-1 mb-2">
             ${displayKeywords.map(keyword => 
@@ -308,6 +327,18 @@ function openDetailModal(card) {
     const detailContent = document.getElementById('detailContent');
     detailContent.innerHTML = `
         <div class="space-y-6">
+            <!-- 액션 버튼들 -->
+            <div class="flex gap-2 justify-end">
+                <button onclick="openEditModal(${JSON.stringify(card).replace(/"/g, '&quot;')})" 
+                        class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors text-sm">
+                    편집
+                </button>
+                <button onclick="openDeleteModal(${card.id})" 
+                        class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors text-sm">
+                    삭제
+                </button>
+            </div>
+
             ${card.thumbnail_url ? `
                 <div class="relative h-64 bg-gray-200 rounded-lg overflow-hidden">
                     <img src="${card.thumbnail_url}" alt="${card.webpage_name}" class="w-full h-full object-cover">
@@ -480,5 +511,129 @@ async function handleAddCard(e) {
         // 로딩 상태 해제
         submitButton.textContent = originalText;
         submitButton.disabled = false;
+    }
+}
+
+// 편집 모달 열기
+function openEditModal(card) {
+    document.getElementById('editCardId').value = card.id;
+    document.getElementById('editCardUrl').value = card.url;
+    document.getElementById('editCardName').value = card.webpage_name;
+    document.getElementById('editCardSummary').value = card.user_summary || '';
+    document.getElementById('editCardSubjects').value = card.useful_subjects ? card.useful_subjects.join(', ') : '';
+    document.getElementById('editCardMeaning').value = card.educational_meaning || '';
+    
+    editModal.classList.remove('hidden');
+    closeDetailModal();
+}
+
+// 편집 모달 닫기
+function closeEditModal() {
+    editModal.classList.add('hidden');
+}
+
+// 삭제 모달 열기
+function openDeleteModal(cardId) {
+    document.getElementById('deleteCardId').value = cardId;
+    document.getElementById('deletePassword').value = '';
+    deleteModal.classList.remove('hidden');
+    closeDetailModal();
+}
+
+// 삭제 모달 닫기
+function closeDeleteModal() {
+    deleteModal.classList.add('hidden');
+}
+
+// 카드 편집 처리
+async function handleEditCard(e) {
+    e.preventDefault();
+    
+    const submitButton = document.getElementById('submitEditButton');
+    const originalText = submitButton.textContent;
+    
+    submitButton.innerHTML = '<span class="spinner"></span> 수정 중...';
+    submitButton.disabled = true;
+    
+    try {
+        const cardId = document.getElementById('editCardId').value;
+        const formData = {
+            url: document.getElementById('editCardUrl').value,
+            webpage_name: document.getElementById('editCardName').value,
+            user_summary: document.getElementById('editCardSummary').value,
+            useful_subjects: document.getElementById('editCardSubjects').value.split(',').map(s => s.trim()).filter(s => s),
+            educational_meaning: document.getElementById('editCardMeaning').value
+        };
+        
+        const response = await fetch(`/api/cards/${cardId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        if (response.ok) {
+            const updatedCard = await response.json();
+            const cardIndex = cards.findIndex(card => card.id == cardId);
+            if (cardIndex !== -1) {
+                cards[cardIndex] = updatedCard;
+                filterCards();
+            }
+            closeEditModal();
+            alert('카드가 성공적으로 수정되었습니다.');
+        } else {
+            const error = await response.json();
+            alert(error.error || '카드 수정에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('Error editing card:', error);
+        alert('카드 수정에 실패했습니다.');
+    } finally {
+        submitButton.textContent = originalText;
+        submitButton.disabled = false;
+    }
+}
+
+// 카드 삭제 처리
+async function handleDeleteCard() {
+    const cardId = document.getElementById('deleteCardId').value;
+    const password = document.getElementById('deletePassword').value;
+    
+    if (!password) {
+        alert('비밀번호를 입력해주세요.');
+        return;
+    }
+    
+    const confirmButton = document.getElementById('confirmDeleteButton');
+    const originalText = confirmButton.textContent;
+    
+    confirmButton.innerHTML = '<span class="spinner"></span> 삭제 중...';
+    confirmButton.disabled = true;
+    
+    try {
+        const response = await fetch(`/api/cards/${cardId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ password })
+        });
+        
+        if (response.ok) {
+            cards = cards.filter(card => card.id != cardId);
+            filterCards();
+            closeDeleteModal();
+            alert('카드가 성공적으로 삭제되었습니다.');
+        } else {
+            const error = await response.json();
+            alert(error.error || '카드 삭제에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('Error deleting card:', error);
+        alert('카드 삭제에 실패했습니다.');
+    } finally {
+        confirmButton.textContent = originalText;
+        confirmButton.disabled = false;
     }
 }

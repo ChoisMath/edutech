@@ -28,7 +28,12 @@ def allowed_file(filename):
 # Supabase 설정
 supabase_url = os.getenv('NEXT_PUBLIC_SUPABASE_URL')
 supabase_key = os.getenv('NEXT_PUBLIC_SUPABASE_ANON_KEY')
-supabase: Client = create_client(supabase_url, supabase_key)
+
+if not supabase_url or not supabase_key:
+    print("Warning: Supabase environment variables not found")
+    supabase = None
+else:
+    supabase: Client = create_client(supabase_url, supabase_key)
 
 # OpenAI 설정
 openai.api_key = os.getenv('OPENAI_API_KEY')
@@ -41,6 +46,9 @@ def index():
 def cards():
     if request.method == 'GET':
         try:
+            if not supabase:
+                return jsonify({'error': 'Database not configured'}), 500
+                
             search = request.args.get('search', '')
             category = request.args.get('category', '')
             subject = request.args.get('subject', '')
@@ -99,6 +107,65 @@ def cards():
             if 'duplicate key' in str(e):
                 return jsonify({'error': 'URL already exists'}), 409
             return jsonify({'error': 'Failed to create card'}), 500
+
+@app.route('/api/cards/<int:card_id>', methods=['PUT', 'DELETE'])
+def card_operations(card_id):
+    if not supabase:
+        return jsonify({'error': 'Database not configured'}), 500
+        
+    if request.method == 'PUT':
+        try:
+            data = request.json
+            url = data.get('url')
+            webpage_name = data.get('webpage_name')
+            user_summary = data.get('user_summary', '')
+            useful_subjects = data.get('useful_subjects', [])
+            educational_meaning = data.get('educational_meaning', '')
+            
+            if not url or not webpage_name:
+                return jsonify({'error': 'URL and webpage_name are required'}), 400
+            
+            update_data = {
+                'url': url,
+                'webpage_name': webpage_name,
+                'user_summary': user_summary,
+                'useful_subjects': useful_subjects,
+                'educational_meaning': educational_meaning,
+                'updated_at': 'now()'
+            }
+            
+            result = supabase.table('edutech_cards').update(update_data).eq('id', card_id).execute()
+            
+            if not result.data:
+                return jsonify({'error': 'Card not found'}), 404
+                
+            return jsonify(result.data[0])
+            
+        except Exception as e:
+            print(f"Error updating card: {e}")
+            return jsonify({'error': 'Failed to update card'}), 500
+    
+    elif request.method == 'DELETE':
+        try:
+            data = request.json
+            password = data.get('password', '')
+            
+            # 비밀번호 확인 (여기서 변경 가능)
+            ADMIN_PASSWORD = "admin"  # 이 부분에서 비밀번호를 변경할 수 있습니다
+            
+            if password != ADMIN_PASSWORD:
+                return jsonify({'error': '비밀번호가 일치하지 않습니다'}), 401
+            
+            result = supabase.table('edutech_cards').delete().eq('id', card_id).execute()
+            
+            if not result.data:
+                return jsonify({'error': 'Card not found'}), 404
+                
+            return jsonify({'message': 'Card deleted successfully'})
+            
+        except Exception as e:
+            print(f"Error deleting card: {e}")
+            return jsonify({'error': 'Failed to delete card'}), 500
 
 @app.route('/api/analyze', methods=['POST'])
 def analyze():
@@ -259,4 +326,6 @@ def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('FLASK_ENV') == 'development'
+    app.run(debug=debug, host='0.0.0.0', port=port)
