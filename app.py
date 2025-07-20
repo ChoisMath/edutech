@@ -48,18 +48,9 @@ except ImportError as e:
 logger.info("Flask 앱 생성 중...")
 app = Flask(__name__)
 
-# 업로드 설정
-UPLOAD_FOLDER = 'static/uploads'
+# 파일 업로드 설정 (Supabase Storage 전용)
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
-
-# 업로드 폴더 생성
-try:
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    logger.info(f"✅ 업로드 폴더 생성: {UPLOAD_FOLDER}")
-except Exception as e:
-    logger.warning(f"⚠️ 업로드 폴더 생성 실패: {e}")
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -68,6 +59,7 @@ def allowed_file(filename):
 logger.info("Supabase 연결 설정 중...")
 supabase_url = os.getenv('NEXT_PUBLIC_SUPABASE_URL')
 supabase_key = os.getenv('NEXT_PUBLIC_SUPABASE_ANON_KEY')
+supabase_service_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
 
 logger.info(f"Supabase URL 존재: {bool(supabase_url)}")
 logger.info(f"Supabase Key 존재: {bool(supabase_key)}")
@@ -76,10 +68,20 @@ if not supabase_url or not supabase_key:
     logger.error("❌ Supabase 환경변수 누락")
     logger.error("필요한 환경변수: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY")
     supabase = None
+    supabase_admin = None
 else:
     try:
+        # 일반 클라이언트 (데이터베이스용)
         supabase: Client = create_client(supabase_url, supabase_key)
         logger.info("✅ Supabase 클라이언트 생성 완료")
+        
+        # Storage용 관리자 클라이언트
+        if supabase_service_key:
+            supabase_admin: Client = create_client(supabase_url, supabase_service_key)
+            logger.info("✅ Supabase 관리자 클라이언트 생성 완료")
+        else:
+            supabase_admin = supabase
+            logger.warning("⚠️ Service Role Key 없음, anon key 사용")
         
         # 연결 테스트
         test_result = supabase.table('edutech_cards').select('id').eq('view', 1).limit(1).execute()
@@ -87,6 +89,7 @@ else:
     except Exception as e:
         logger.error(f"❌ Supabase 연결 실패: {e}")
         supabase = None
+        supabase_admin = None
 
 logger.info("=== Flask 앱 초기화 완료 ===")
 
@@ -183,8 +186,10 @@ def cards():
             
             # 썸네일 URL 처리
             thumbnail_url = data.get('thumbnail_url', '')
+            print(f"받은 썸네일 URL: '{thumbnail_url}'")  # 디버깅용
             if not thumbnail_url:
                 thumbnail_url = f"https://via.placeholder.com/400x300?text={webpage_name}"
+                print(f"기본 썸네일 URL 설정: '{thumbnail_url}'")  # 디버깅용
             
             new_card = {
                 'url': url,
@@ -196,7 +201,9 @@ def cards():
                 'thumbnail_url': thumbnail_url,
             }
             
+            print(f"데이터베이스에 저장할 카드: {new_card}")  # 디버깅용
             result = supabase.table('edutech_cards').insert(new_card).execute()
+            print(f"저장된 카드: {result.data[0] if result.data else 'None'}")  # 디버깅용
             return jsonify(result.data[0]), 201
             
         except Exception as e:
@@ -302,6 +309,9 @@ def duplicate_check():
 
 # 웹페이지 내용 추출 함수 제거됨 (OpenAI 분석 관련)
 
+# Supabase Storage 설정
+BUCKET_NAME = 'edutech-thumbnails'
+
 @app.route('/api/upload-thumbnail', methods=['POST'])
 def upload_thumbnail():
     try:
@@ -318,17 +328,39 @@ def upload_thumbnail():
             unique_filename = f"{uuid.uuid4().hex}.{file_extension}"
             filename = secure_filename(unique_filename)
             
-            # 파일 저장
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(filepath)
+            # Supabase Storage에 업로드
+            file_content = file.read()
             
-            # 파일 URL 반환
-            file_url = f"/static/uploads/{filename}"
-            return jsonify({
-                'success': True,
-                'filename': filename,
-                'url': file_url
-            })
+            try:
+                # Supabase Storage에 파일 업로드 (관리자 권한 사용)
+                storage_client = supabase_admin if supabase_admin else supabase
+                
+                print(f"업로드 시도: {filename}, 크기: {len(file_content)} bytes")
+                
+                # 파일 업로드
+                upload_result = storage_client.storage.from_(BUCKET_NAME).upload(
+                    path=filename,
+                    file=file_content,
+                    file_options={"content-type": file.content_type}
+                )
+                
+                print(f"업로드 결과 타입: {type(upload_result)}")
+                print(f"업로드 결과: {upload_result}")
+                
+                # 업로드 성공 시 공개 URL 생성
+                public_url = storage_client.storage.from_(BUCKET_NAME).get_public_url(filename)
+                
+                print(f"공개 URL: {public_url}")
+                
+                return jsonify({
+                    'success': True,
+                    'filename': filename,
+                    'url': public_url
+                })
+                
+            except Exception as storage_error:
+                print(f"Supabase Storage 오류: {storage_error}")
+                return jsonify({'error': f'Storage upload failed: {str(storage_error)}'}), 500
         else:
             return jsonify({'error': 'Invalid file type. Only PNG, JPG, JPEG, GIF, WebP allowed'}), 400
             
@@ -336,9 +368,7 @@ def upload_thumbnail():
         print(f"Error uploading thumbnail: {e}")
         return jsonify({'error': 'Failed to upload thumbnail'}), 500
 
-@app.route('/static/uploads/<filename>')
-def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+# 로컬 파일 서빙 라우트 제거 (Supabase Storage 전용으로 변경)
 
 # Railway 환경 확인
 is_railway = os.environ.get('RAILWAY_ENVIRONMENT') is not None
@@ -352,7 +382,7 @@ if is_railway:
 logger.info("=== 앱 초기화 완료 요약 ===")
 logger.info(f"✅ Flask 앱: {app.name}")
 logger.info(f"✅ Supabase 연결: {'성공' if supabase else '실패'}")
-logger.info(f"✅ 업로드 폴더: {UPLOAD_FOLDER}")
+logger.info(f"✅ Supabase Storage 버킷: {BUCKET_NAME}")
 logger.info(f"✅ 환경: {'Railway' if is_railway else '로컬'}")
 
 if __name__ == '__main__':

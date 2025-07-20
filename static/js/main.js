@@ -521,6 +521,9 @@ async function handleAddCard(e) {
     submitButton.disabled = true;
     
     try {
+        const thumbnailUrl = document.getElementById('thumbnailUrl').value;
+        console.log('썸네일 URL:', thumbnailUrl); // 디버깅용
+        
         const formData = {
             url: document.getElementById('cardUrl').value,
             webpage_name: document.getElementById('cardName').value,
@@ -528,8 +531,10 @@ async function handleAddCard(e) {
             useful_subjects: document.getElementById('cardSubjects').value.split(',').map(s => s.trim()).filter(s => s),
             educational_meaning: document.getElementById('cardMeaning').value,
             keyword: document.getElementById('cardKeyword').value.split(',').map(k => k.trim()).filter(k => k),
-            thumbnail_url: document.getElementById('thumbnailUrl').value
+            thumbnail_url: thumbnailUrl
         };
+        
+        console.log('전송할 데이터:', formData); // 디버깅용
         
         const response = await fetch('/api/cards', {
             method: 'POST',
@@ -541,11 +546,13 @@ async function handleAddCard(e) {
         
         if (response.ok) {
             const newCard = await response.json();
+            console.log('생성된 카드:', newCard); // 디버깅용
             cards.unshift(newCard);
             filterCards();
             closeAddModal();
         } else {
             const error = await response.json();
+            console.error('서버 오류:', error); // 디버깅용
             alert(error.error || '카드 추가에 실패했습니다.');
         }
     } catch (error) {
