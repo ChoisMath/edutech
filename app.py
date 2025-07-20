@@ -82,7 +82,7 @@ else:
         logger.info("✅ Supabase 클라이언트 생성 완료")
         
         # 연결 테스트
-        test_result = supabase.table('edutech_cards').select('id').limit(1).execute()
+        test_result = supabase.table('edutech_cards').select('id').eq('view', 1).limit(1).execute()
         logger.info(f"✅ Supabase 연결 테스트 성공 - 데이터: {bool(test_result.data)}")
     except Exception as e:
         logger.error(f"❌ Supabase 연결 실패: {e}")
@@ -108,7 +108,7 @@ def health_check():
     # Supabase 연결 상태 확인
     if supabase:
         try:
-            test_result = supabase.table('edutech_cards').select('id').limit(1).execute()
+            test_result = supabase.table('edutech_cards').select('id').eq('view', 1).limit(1).execute()
             health_status['database_test'] = 'success'
             health_status['total_cards'] = len(test_result.data) if test_result.data else 0
         except Exception as e:
@@ -135,7 +135,7 @@ def cards():
             
             print(f"검색 조건 - search: '{search}', category: '{category}', subject: '{subject}'")
             
-            query = supabase.table('edutech_cards').select('*')
+            query = supabase.table('edutech_cards').select('*').eq('view', 1)
             
             if search:
                 query = query.or_(f"webpage_name.ilike.%{search}%,user_summary.ilike.%{search}%,ai_summary.ilike.%{search}%")
@@ -173,7 +173,8 @@ def cards():
             user_summary = data.get('user_summary', '')
             useful_subjects = data.get('useful_subjects', [])
             educational_meaning = data.get('educational_meaning', '')
-            keyword = data.get('keyword', '')
+            keyword_str = data.get('keyword', '')
+            keyword = [k.strip() for k in keyword_str.split(',') if k.strip()] if keyword_str else []
             
             if not url or not webpage_name:
                 return jsonify({'error': 'URL and webpage_name are required'}), 400
@@ -215,7 +216,8 @@ def card_operations(card_id):
             user_summary = data.get('user_summary', '')
             useful_subjects = data.get('useful_subjects', [])
             educational_meaning = data.get('educational_meaning', '')
-            keyword = data.get('keyword', '')
+            keyword_str = data.get('keyword', '')
+            keyword = [k.strip() for k in keyword_str.split(',') if k.strip()] if keyword_str else []
             
             if not url or not webpage_name:
                 return jsonify({'error': 'URL and webpage_name are required'}), 400
@@ -235,8 +237,8 @@ def card_operations(card_id):
             if thumbnail_url is not None:
                 update_data['thumbnail_url'] = thumbnail_url
             
-            # 먼저 카드가 존재하는지 확인
-            check_result = supabase.table('edutech_cards').select('id').eq('id', card_id).execute()
+            # 먼저 카드가 존재하고 view=1인지 확인
+            check_result = supabase.table('edutech_cards').select('id').eq('id', card_id).eq('view', 1).execute()
             if not check_result.data:
                 return jsonify({'error': 'Card not found'}), 404
             
@@ -259,13 +261,13 @@ def card_operations(card_id):
             if password != ADMIN_PASSWORD:
                 return jsonify({'error': '비밀번호가 일치하지 않습니다'}), 401
             
-            # 먼저 카드가 존재하는지 확인
-            check_result = supabase.table('edutech_cards').select('id').eq('id', card_id).execute()
+            # 먼저 카드가 존재하고 view=1인지 확인
+            check_result = supabase.table('edutech_cards').select('id, view').eq('id', card_id).eq('view', 1).execute()
             if not check_result.data:
-                return jsonify({'error': 'Card not found'}), 404
+                return jsonify({'error': 'Card not found or already hidden'}), 404
             
-            # 카드 삭제
-            result = supabase.table('edutech_cards').delete().eq('id', card_id).execute()
+            # 카드를 숨기기 (view=0으로 설정)
+            result = supabase.table('edutech_cards').update({'view': 0}).eq('id', card_id).execute()
             
             return jsonify({'message': 'Card deleted successfully'})
             
@@ -286,7 +288,7 @@ def duplicate_check():
         
         domain = urlparse(url).hostname
         
-        result = supabase.table('edutech_cards').select('id, webpage_name, url').ilike('url', f'%{domain}%').limit(5).execute()
+        result = supabase.table('edutech_cards').select('id, webpage_name, url').eq('view', 1).ilike('url', f'%{domain}%').limit(5).execute()
         
         return jsonify({'duplicates': result.data or []})
         
