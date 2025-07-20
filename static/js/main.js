@@ -139,15 +139,33 @@ function filterCards() {
     if (!searchQuery) {
         filteredCards = cards;
     } else {
-        filteredCards = cards.filter(card => 
-            card.webpage_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            card.ai_keywords?.some(keyword => 
-                keyword.toLowerCase().includes(searchQuery.toLowerCase())
-            ) ||
-            card.useful_subjects?.some(subject => 
-                subject.toLowerCase().includes(searchQuery.toLowerCase())
-            )
-        );
+        // 쉼표로 구분된 다중 키워드 검색 지원
+        const keywords = searchQuery.split(',').map(kw => kw.trim().toLowerCase()).filter(kw => kw);
+        
+        if (keywords.length === 0) {
+            filteredCards = cards;
+        } else if (keywords.length === 1) {
+            // 단일 키워드 검색
+            const keyword = keywords[0];
+            filteredCards = cards.filter(card => 
+                card.webpage_name?.toLowerCase().includes(keyword) ||
+                card.user_summary?.toLowerCase().includes(keyword) ||
+                card.ai_summary?.toLowerCase().includes(keyword) ||
+                card.keyword?.some(kw => kw.toLowerCase().includes(keyword)) ||
+                card.useful_subjects?.some(subject => subject.toLowerCase().includes(keyword))
+            );
+        } else {
+            // 다중 키워드 검색 - 모든 키워드가 포함되어야 함
+            filteredCards = cards.filter(card => {
+                return keywords.every(keyword => 
+                    card.webpage_name?.toLowerCase().includes(keyword) ||
+                    card.user_summary?.toLowerCase().includes(keyword) ||
+                    card.ai_summary?.toLowerCase().includes(keyword) ||
+                    card.keyword?.some(kw => kw.toLowerCase().includes(keyword)) ||
+                    card.useful_subjects?.some(subject => subject.toLowerCase().includes(keyword))
+                );
+            });
+        }
     }
     
     renderCards();
