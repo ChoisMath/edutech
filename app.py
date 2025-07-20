@@ -1,16 +1,51 @@
+#!/usr/bin/env python3
 import os
+import sys
 import json
-from flask import Flask, render_template, request, jsonify, send_from_directory
-from dotenv import load_dotenv
-from supabase import create_client, Client
-import requests
-import re
-from urllib.parse import urlparse
-from werkzeug.utils import secure_filename
-import uuid
+import logging
 
-load_dotenv()
+# Configure logging for Railway
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
 
+logger.info("=== Flask 앱 초기화 시작 ===")
+
+# Load environment variables
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+    logger.info("✅ 환경변수 로드 완료")
+except Exception as e:
+    logger.warning(f"⚠️ dotenv 로드 실패: {e}")
+
+# Import Flask components
+try:
+    from flask import Flask, render_template, request, jsonify, send_from_directory
+    from werkzeug.utils import secure_filename
+    import uuid
+    import requests
+    import re
+    from urllib.parse import urlparse
+    logger.info("✅ Flask 모듈 import 완료")
+except ImportError as e:
+    logger.error(f"❌ Flask 모듈 import 실패: {e}")
+    raise
+
+# Import Supabase
+try:
+    from supabase import create_client, Client
+    logger.info("✅ Supabase 모듈 import 완료")
+except ImportError as e:
+    logger.error(f"❌ Supabase 모듈 import 실패: {e}")
+    raise
+
+logger.info("Flask 앱 생성 중...")
 app = Flask(__name__)
 
 # 업로드 설정
@@ -20,26 +55,69 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 # 업로드 폴더 생성
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+try:
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    logger.info(f"✅ 업로드 폴더 생성: {UPLOAD_FOLDER}")
+except Exception as e:
+    logger.warning(f"⚠️ 업로드 폴더 생성 실패: {e}")
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Supabase 설정
+logger.info("Supabase 연결 설정 중...")
 supabase_url = os.getenv('NEXT_PUBLIC_SUPABASE_URL')
 supabase_key = os.getenv('NEXT_PUBLIC_SUPABASE_ANON_KEY')
 
+logger.info(f"Supabase URL 존재: {bool(supabase_url)}")
+logger.info(f"Supabase Key 존재: {bool(supabase_key)}")
+
 if not supabase_url or not supabase_key:
-    print("Warning: Supabase environment variables not found")
+    logger.error("❌ Supabase 환경변수 누락")
+    logger.error("필요한 환경변수: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY")
     supabase = None
 else:
-    supabase: Client = create_client(supabase_url, supabase_key)
+    try:
+        supabase: Client = create_client(supabase_url, supabase_key)
+        logger.info("✅ Supabase 클라이언트 생성 완료")
+        
+        # 연결 테스트
+        test_result = supabase.table('edutech_cards').select('id').limit(1).execute()
+        logger.info(f"✅ Supabase 연결 테스트 성공 - 데이터: {bool(test_result.data)}")
+    except Exception as e:
+        logger.error(f"❌ Supabase 연결 실패: {e}")
+        supabase = None
 
-# OpenAI 관련 설정 제거됨
+logger.info("=== Flask 앱 초기화 완료 ===")
 
 @app.route('/')
 def index():
     return render_template('index.html')
+
+# Health check endpoint for Railway
+@app.route('/health')
+def health_check():
+    health_status = {
+        'status': 'healthy',
+        'supabase_connected': supabase is not None,
+        'timestamp': os.environ.get('RAILWAY_DEPLOYMENT_ID', 'local'),
+        'environment': 'railway' if os.environ.get('RAILWAY_ENVIRONMENT') else 'local',
+        'python_version': sys.version.split()[0]
+    }
+    
+    # Supabase 연결 상태 확인
+    if supabase:
+        try:
+            test_result = supabase.table('edutech_cards').select('id').limit(1).execute()
+            health_status['database_test'] = 'success'
+            health_status['total_cards'] = len(test_result.data) if test_result.data else 0
+        except Exception as e:
+            health_status['database_test'] = f'failed: {str(e)}'
+            logger.error(f"Health check database test failed: {e}")
+    else:
+        health_status['database_test'] = 'no_connection'
+    
+    return health_status
 
 @app.route('/api/cards', methods=['GET', 'POST'])
 def cards():
@@ -252,11 +330,29 @@ def upload_thumbnail():
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
+# Railway 환경 확인
+is_railway = os.environ.get('RAILWAY_ENVIRONMENT') is not None
+deployment_id = os.environ.get('RAILWAY_DEPLOYMENT_ID', 'unknown')
+logger.info(f"Railway 환경: {is_railway}")
+if is_railway:
+    logger.info(f"배포 ID: {deployment_id}")
+    logger.info(f"Railway 서비스: {os.environ.get('RAILWAY_SERVICE_NAME', 'unknown')}")
+
+# Startup summary
+logger.info("=== 앱 초기화 완료 요약 ===")
+logger.info(f"✅ Flask 앱: {app.name}")
+logger.info(f"✅ Supabase 연결: {'성공' if supabase else '실패'}")
+logger.info(f"✅ 업로드 폴더: {UPLOAD_FOLDER}")
+logger.info(f"✅ 환경: {'Railway' if is_railway else '로컬'}")
+
 if __name__ == '__main__':
+    # 로컬 개발환경
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('FLASK_ENV') == 'development'
+    logger.info(f"🚀 로컬 서버 시작: 포트 {port}, 디버그 {debug}")
     app.run(debug=debug, host='0.0.0.0', port=port)
 else:
-    # Production server settings
-    import logging
-    logging.basicConfig(level=logging.INFO)
+    # 프로덕션 환경 (Railway/gunicorn)
+    logger.info("🚀 프로덕션 환경에서 실행 중")
+    if is_railway:
+        logger.info("Railway 플랫폼 배포 완료")
