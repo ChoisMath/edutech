@@ -42,3 +42,27 @@
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
+
+/* 모바일 친화적 모달 스타일 */
+@media (max-width: 768px) {
+    .modal-container {
+        width: 80% !important;
+        height: 80% !important;
+        max-width: none !important;
+        max-height: 80vh !important;
+        margin: auto !important;
+    }
+    
+    .modal-content {
+        height: 100%;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .modal-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+    }
+}

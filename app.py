@@ -220,6 +220,14 @@ def card_operations(card_id):
     if request.method == 'PUT':
         try:
             data = request.json
+            
+            # 편집 비밀번호 확인 (여기서 변경 가능)
+            password = data.get('password', '')
+            EDIT_PASSWORD = "1"  # 편집 비밀번호 (요청에 따라 "1"로 설정)
+            
+            if password != EDIT_PASSWORD:
+                return jsonify({'error': '편집 비밀번호가 일치하지 않습니다'}), 401
+            
             url = data.get('url')
             webpage_name = data.get('webpage_name')
             user_summary = data.get('user_summary', '')

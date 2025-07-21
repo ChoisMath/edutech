@@ -586,6 +586,7 @@ async function handleAddCard(e) {
 // 편집 모달 열기
 function openEditModal(card) {
     document.getElementById('editCardId').value = card.id;
+    document.getElementById('editPassword').value = ''; // 비밀번호 필드 초기화
     document.getElementById('editCardUrl').value = card.url;
     document.getElementById('editCardName').value = card.webpage_name;
     document.getElementById('editCardSummary').value = card.user_summary || '';
@@ -642,7 +643,15 @@ async function handleEditCard(e) {
     
     try {
         const cardId = document.getElementById('editCardId').value;
+        const password = document.getElementById('editPassword').value;
+        
+        if (!password) {
+            alert('편집 비밀번호를 입력해주세요.');
+            return;
+        }
+        
         const formData = {
+            password: password,
             url: document.getElementById('editCardUrl').value,
             webpage_name: document.getElementById('editCardName').value,
             user_summary: document.getElementById('editCardSummary').value,
