@@ -10,6 +10,13 @@ let isDragModeEnabled = false;
 const cardsGrid = document.getElementById('cardsGrid');
 const emptyState = document.getElementById('emptyState');
 const searchInput = document.getElementById('searchInput');
+const addButton = document.getElementById('addButton');
+const addModal = document.getElementById('addModal');
+const detailModal = document.getElementById('detailModal');
+const editModal = document.getElementById('editModal');
+const deleteModal = document.getElementById('deleteModal');
+const downloadModal = document.getElementById('downloadModal');
+const downloadExcelButton = document.getElementById('downloadExcelButton');
 const dragModeToggle = document.getElementById('dragModeToggle');
 const saveOrderButton = document.getElementById('saveOrderButton');
 
@@ -28,9 +35,49 @@ function initializeEventListeners() {
     document.getElementById('filterSubject').addEventListener('click', () => setFilter('subject'));
     document.getElementById('filterKeyword').addEventListener('click', () => setFilter('keyword'));
     
+    // 모달 관련
+    addButton.addEventListener('click', openAddModal);
+    downloadExcelButton.addEventListener('click', openDownloadModal);
+    document.getElementById('closeModal').addEventListener('click', closeAddModal);
+    document.getElementById('cancelButton').addEventListener('click', closeAddModal);
+    document.getElementById('closeDetailModal').addEventListener('click', closeDetailModal);
+    document.getElementById('closeEditModal').addEventListener('click', closeEditModal);
+    document.getElementById('cancelEditButton').addEventListener('click', closeEditModal);
+    document.getElementById('closeDeleteModal').addEventListener('click', closeDeleteModal);
+    document.getElementById('cancelDeleteButton').addEventListener('click', closeDeleteModal);
+    document.getElementById('closeDownloadModal').addEventListener('click', closeDownloadModal);
+    document.getElementById('cancelDownloadButton').addEventListener('click', closeDownloadModal);
+    
+    // 폼 제출
+    document.getElementById('addCardForm').addEventListener('submit', handleAddCard);
+    document.getElementById('editCardForm').addEventListener('submit', handleEditCard);
+    document.getElementById('confirmDeleteButton').addEventListener('click', handleDeleteCard);
+    document.getElementById('confirmDownloadButton').addEventListener('click', handleDownloadExcel);
+    
     // 드래그 모드 관련
     dragModeToggle.addEventListener('change', toggleDragMode);
     saveOrderButton.addEventListener('click', handleSaveOrder);
+    
+    // 모달 외부 클릭시 닫기
+    addModal.addEventListener('click', function(e) {
+        if (e.target === addModal) closeAddModal();
+    });
+    
+    detailModal.addEventListener('click', function(e) {
+        if (e.target === detailModal) closeDetailModal();
+    });
+    
+    editModal.addEventListener('click', function(e) {
+        if (e.target === editModal) closeEditModal();
+    });
+    
+    deleteModal.addEventListener('click', function(e) {
+        if (e.target === deleteModal) closeDeleteModal();
+    });
+    
+    downloadModal.addEventListener('click', function(e) {
+        if (e.target === downloadModal) closeDownloadModal();
+    });
 }
 
 // 카드 데이터 가져오기
@@ -158,7 +205,31 @@ function createCardHTML(card) {
                 </div>
             ` : ''}
             
-            <div class="p-4 cursor-pointer">
+            <!-- 관리자 기능 버튼 -->
+            <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                <div class="flex gap-1">
+                    <button 
+                        onclick="event.stopPropagation(); openEditModal(${card.id})"
+                        class="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 shadow-lg"
+                        title="편집"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                    </button>
+                    <button 
+                        onclick="event.stopPropagation(); openDeleteModal(${card.id})"
+                        class="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-lg"
+                        title="삭제"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-4 cursor-pointer" onclick="openDetailModal(${card.id})">
                 <div class="flex items-start gap-3 mb-3">
                     <div class="flex-shrink-0">
                         <img 
@@ -195,6 +266,279 @@ function createCardHTML(card) {
             </div>
         </div>
     `;
+}
+
+// 상세 모달 열기
+function openDetailModal(cardId) {
+    const card = cards.find(c => c.id === cardId);
+    if (!card) return;
+    
+    const subjects = Array.isArray(card.useful_subjects) ? card.useful_subjects : [];
+    const keywords = Array.isArray(card.keyword) ? card.keyword : [];
+    const thumbnailUrl = card.thumbnail_url || `https://via.placeholder.com/400x300?text=${encodeURIComponent(card.webpage_name)}`;
+    
+    document.getElementById('detailContent').innerHTML = `
+        <div class="space-y-6">
+            <div class="text-center">
+                <img 
+                    src="${thumbnailUrl}" 
+                    alt="${card.webpage_name}"
+                    class="mx-auto rounded-lg shadow-md max-w-full h-48 object-cover"
+                    onerror="this.src='https://via.placeholder.com/400x300?text=${encodeURIComponent(card.webpage_name)}'"
+                />
+            </div>
+            
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">${card.webpage_name}</h2>
+                <a href="${card.url}" target="_blank" class="text-blue-600 hover:text-blue-800 underline break-all">
+                    ${card.url}
+                </a>
+            </div>
+            
+            ${card.user_summary ? `
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-700 mb-2">간단 요약</h3>
+                    <p class="text-gray-600 leading-relaxed">${card.user_summary}</p>
+                </div>
+            ` : ''}
+            
+            ${subjects.length > 0 ? `
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-700 mb-2">유용한 교과목</h3>
+                    <div class="flex flex-wrap gap-2">
+                        ${subjects.map(subject => 
+                            `<span class="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">${subject}</span>`
+                        ).join('')}
+                    </div>
+                </div>
+            ` : ''}
+            
+            ${keywords.length > 0 ? `
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-700 mb-2">키워드</h3>
+                    <div class="flex flex-wrap gap-2">
+                        ${keywords.map(keyword => 
+                            `<span class="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">${keyword}</span>`
+                        ).join('')}
+                    </div>
+                </div>
+            ` : ''}
+            
+            ${card.educational_meaning ? `
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-700 mb-2">교육적 의미</h3>
+                    <p class="text-gray-600 leading-relaxed">${card.educational_meaning}</p>
+                </div>
+            ` : ''}
+            
+            ${card.ai_summary ? `
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-700 mb-2">AI 분석</h3>
+                    <p class="text-gray-600 leading-relaxed">${card.ai_summary}</p>
+                </div>
+            ` : ''}
+        </div>
+    `;
+    
+    detailModal.classList.remove('hidden');
+}
+
+// 추가 모달 열기
+function openAddModal() {
+    document.getElementById('addCardForm').reset();
+    addModal.classList.remove('hidden');
+}
+
+// 편집 모달 열기
+function openEditModal(cardId) {
+    const card = cards.find(c => c.id === cardId);
+    if (!card) return;
+    
+    document.getElementById('editCardId').value = card.id;
+    document.getElementById('editCardUrl').value = card.url || '';
+    document.getElementById('editCardName').value = card.webpage_name || '';
+    document.getElementById('editCardSummary').value = card.user_summary || '';
+    document.getElementById('editCardSubjects').value = Array.isArray(card.useful_subjects) ? card.useful_subjects.join(', ') : '';
+    document.getElementById('editCardKeyword').value = Array.isArray(card.keyword) ? card.keyword.join(', ') : '';
+    document.getElementById('editCardMeaning').value = card.educational_meaning || '';
+    document.getElementById('editPassword').value = '';
+    
+    editModal.classList.remove('hidden');
+}
+
+// 삭제 모달 열기
+function openDeleteModal(cardId) {
+    document.getElementById('deleteCardId').value = cardId;
+    document.getElementById('deletePassword').value = '';
+    deleteModal.classList.remove('hidden');
+}
+
+// 다운로드 모달 열기
+function openDownloadModal() {
+    document.getElementById('downloadPassword').value = '';
+    downloadModal.classList.remove('hidden');
+}
+
+// 모달 닫기 함수들
+function closeAddModal() {
+    addModal.classList.add('hidden');
+}
+
+function closeDetailModal() {
+    detailModal.classList.add('hidden');
+}
+
+function closeEditModal() {
+    editModal.classList.add('hidden');
+}
+
+function closeDeleteModal() {
+    deleteModal.classList.add('hidden');
+}
+
+function closeDownloadModal() {
+    downloadModal.classList.add('hidden');
+}
+
+// 카드 추가 처리
+async function handleAddCard(e) {
+    e.preventDefault();
+    
+    const cardData = {
+        url: document.getElementById('cardUrl').value,
+        webpage_name: document.getElementById('cardName').value,
+        user_summary: document.getElementById('cardSummary').value,
+        useful_subjects: document.getElementById('cardSubjects').value.split(',').map(s => s.trim()).filter(s => s),
+        keyword: document.getElementById('cardKeyword').value.split(',').map(k => k.trim()).filter(k => k),
+        educational_meaning: document.getElementById('cardMeaning').value
+    };
+    
+    try {
+        const response = await fetch('/api/cards', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cardData)
+        });
+        
+        if (response.ok) {
+            alert('카드가 성공적으로 추가되었습니다!');
+            closeAddModal();
+            await fetchCards();
+        } else {
+            const error = await response.json();
+            alert(error.error || '카드 추가에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('카드 추가 실패:', error);
+        alert('카드 추가 중 오류가 발생했습니다.');
+    }
+}
+
+// 카드 편집 처리
+async function handleEditCard(e) {
+    e.preventDefault();
+    
+    const cardId = document.getElementById('editCardId').value;
+    const password = document.getElementById('editPassword').value;
+    
+    const cardData = {
+        password: password,
+        url: document.getElementById('editCardUrl').value,
+        webpage_name: document.getElementById('editCardName').value,
+        user_summary: document.getElementById('editCardSummary').value,
+        useful_subjects: document.getElementById('editCardSubjects').value.split(',').map(s => s.trim()).filter(s => s),
+        keyword: document.getElementById('editCardKeyword').value.split(',').map(k => k.trim()).filter(k => k),
+        educational_meaning: document.getElementById('editCardMeaning').value
+    };
+    
+    try {
+        const response = await fetch(`/api/cards/${cardId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cardData)
+        });
+        
+        if (response.ok) {
+            alert('카드가 성공적으로 수정되었습니다!');
+            closeEditModal();
+            await fetchCards();
+        } else {
+            const error = await response.json();
+            alert(error.error || '카드 수정에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('카드 수정 실패:', error);
+        alert('카드 수정 중 오류가 발생했습니다.');
+    }
+}
+
+// 카드 삭제 처리
+async function handleDeleteCard() {
+    const cardId = document.getElementById('deleteCardId').value;
+    const password = document.getElementById('deletePassword').value;
+    
+    if (!password) {
+        alert('비밀번호를 입력해주세요.');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/cards/${cardId}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: password })
+        });
+        
+        if (response.ok) {
+            alert('카드가 성공적으로 삭제되었습니다!');
+            closeDeleteModal();
+            await fetchCards();
+        } else {
+            const error = await response.json();
+            alert(error.error || '카드 삭제에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('카드 삭제 실패:', error);
+        alert('카드 삭제 중 오류가 발생했습니다.');
+    }
+}
+
+// Excel 다운로드 처리
+async function handleDownloadExcel() {
+    const password = document.getElementById('downloadPassword').value;
+    
+    if (!password) {
+        alert('비밀번호를 입력해주세요.');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/download-excel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: password })
+        });
+        
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = `edutech_cards_${new Date().toISOString().slice(0,10)}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            closeDownloadModal();
+            alert('Excel 파일이 다운로드되었습니다!');
+        } else {
+            const error = await response.json();
+            alert(error.error || 'Excel 다운로드에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('Excel 다운로드 실패:', error);
+        alert('Excel 다운로드 중 오류가 발생했습니다.');
+    }
 }
 
 // SortableJS 초기화
@@ -340,6 +684,16 @@ async function handleSaveOrder() {
 // ESC 키로 모달 닫기
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
-        // ESC 키 처리 로직
+        if (!addModal.classList.contains('hidden')) {
+            closeAddModal();
+        } else if (!detailModal.classList.contains('hidden')) {
+            closeDetailModal();
+        } else if (!editModal.classList.contains('hidden')) {
+            closeEditModal();
+        } else if (!deleteModal.classList.contains('hidden')) {
+            closeDeleteModal();
+        } else if (!downloadModal.classList.contains('hidden')) {
+            closeDownloadModal();
+        }
     }
 });

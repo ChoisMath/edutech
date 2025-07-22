@@ -32,6 +32,7 @@ try:
     import requests
     import re
     from urllib.parse import urlparse
+    from datetime import datetime
     logger.info("✅ Flask 모듈 import 완료")
 except ImportError as e:
     logger.error(f"❌ Flask 모듈 import 실패: {e}")
@@ -210,6 +211,19 @@ def cards():
                 'thumbnail_url': thumbnail_url,
             }
             
+            # sort_order 필드가 존재하는지 확인하고 설정
+            try:
+                # 새 카드의 sort_order는 가장 큰 값 + 1로 설정 (맨 뒤에 추가)
+                max_order_result = supabase.table('edutech_cards').select('sort_order').order('sort_order', desc=True).limit(1).execute()
+                next_sort_order = 1
+                if max_order_result.data and max_order_result.data[0].get('sort_order') is not None:
+                    next_sort_order = max_order_result.data[0]['sort_order'] + 1
+                new_card['sort_order'] = next_sort_order
+                print(f"sort_order 설정: {next_sort_order}")
+            except Exception as sort_error:
+                print(f"sort_order 필드 설정 실패, 건너뜀: {sort_error}")
+                # sort_order 필드가 없으면 그냥 추가하지 않음
+            
             print(f"데이터베이스에 저장할 카드: {new_card}")  # 디버깅용
             result = supabase.table('edutech_cards').insert(new_card).execute()
             print(f"저장된 카드: {result.data[0] if result.data else 'None'}")  # 디버깅용
@@ -230,9 +244,9 @@ def card_operations(card_id):
         try:
             data = request.json
             
-            # 편집 비밀번호 확인 (여기서 변경 가능)
+            # 편집 비밀번호 확인
             password = data.get('password', '')
-            EDIT_PASSWORD = "1"  # 편집 비밀번호 (요청에 따라 "1"로 설정)
+            EDIT_PASSWORD = "1"
             
             if password != EDIT_PASSWORD:
                 return jsonify({'error': '편집 비밀번호가 일치하지 않습니다'}), 401
@@ -243,7 +257,6 @@ def card_operations(card_id):
             useful_subjects = data.get('useful_subjects', [])
             educational_meaning = data.get('educational_meaning', '')
             keyword = data.get('keyword', [])
-            # JavaScript에서 이미 배열로 전송되므로 추가 처리 불필요
             if not isinstance(keyword, list):
                 keyword = []
             
@@ -283,8 +296,8 @@ def card_operations(card_id):
             data = request.json or {}
             password = data.get('password', '')
             
-            # 비밀번호 확인 (여기서 변경 가능)
-            ADMIN_PASSWORD = "admin"  # 이 부분에서 비밀번호를 변경할 수 있습니다
+            # 비밀번호 확인
+            ADMIN_PASSWORD = "admin"
             
             if password != ADMIN_PASSWORD:
                 return jsonify({'error': '비밀번호가 일치하지 않습니다'}), 401
@@ -302,6 +315,7 @@ def card_operations(card_id):
         except Exception as e:
             print(f"Error deleting card: {e}")
             return jsonify({'error': 'Failed to delete card'}), 500
+
 
 # OpenAI 분석 기능 제거됨
 
@@ -384,6 +398,102 @@ def upload_thumbnail():
     except Exception as e:
         print(f"Error uploading thumbnail: {e}")
         return jsonify({'error': 'Failed to upload thumbnail'}), 500
+
+# Excel 다운로드 엔드포인트
+@app.route('/api/download-excel', methods=['POST'])
+def download_excel():
+    try:
+        if not supabase:
+            return jsonify({'error': 'Database not configured'}), 500
+            
+        data = request.json or {}
+        password = data.get('password', '')
+        
+        # 비밀번호 확인 (관리자 비밀번호 사용)
+        ADMIN_PASSWORD = "admin"
+        
+        if password != ADMIN_PASSWORD:
+            return jsonify({'error': '비밀번호가 일치하지 않습니다'}), 401
+        
+        # 모든 visible 카드 데이터 가져오기
+        result = supabase.table('edutech_cards').select('*').eq('view', 1).order('sort_order', desc=False).order('created_at', desc=True).execute()
+        
+        if not result.data:
+            return jsonify({'error': '다운로드할 데이터가 없습니다'}), 404
+        
+        # Excel 파일 생성
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment
+        from flask import Response
+        import io
+        
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "에듀테크 카드"
+        
+        # 헤더 설정
+        headers = [
+            'ID', '웹페이지 이름', 'URL', '간단 요약', '유용한 교과목', 
+            '키워드', '교육적 의미', '생성일', '수정일', '정렬순서'
+        ]
+        
+        # 헤더 스타일
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+        header_alignment = Alignment(horizontal="center", vertical="center")
+        
+        # 헤더 작성
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+        
+        # 데이터 작성
+        for row, card in enumerate(result.data, 2):
+            ws.cell(row=row, column=1, value=card.get('id'))
+            ws.cell(row=row, column=2, value=card.get('webpage_name', ''))
+            ws.cell(row=row, column=3, value=card.get('url', ''))
+            ws.cell(row=row, column=4, value=card.get('user_summary', ''))
+            ws.cell(row=row, column=5, value=', '.join(card.get('useful_subjects', [])))
+            ws.cell(row=row, column=6, value=', '.join(card.get('keyword', [])))
+            ws.cell(row=row, column=7, value=card.get('educational_meaning', ''))
+            ws.cell(row=row, column=8, value=card.get('created_at', ''))
+            ws.cell(row=row, column=9, value=card.get('updated_at', ''))
+            ws.cell(row=row, column=10, value=card.get('sort_order', ''))
+        
+        # 열 너비 자동 조정
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws.column_dimensions[column_letter].width = adjusted_width
+        
+        # 바이너리 데이터로 변환
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        response = Response(
+            output.getvalue(),
+            headers={
+                'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Disposition': f'attachment; filename=edutech_cards_{datetime.now().strftime("%Y%m%d")}.xlsx'
+            }
+        )
+        return response
+        
+    except Exception as e:
+        print(f"Excel 다운로드 오류: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Excel 다운로드 중 오류가 발생했습니다'}), 500
 
 # 카드 순서 업데이트 엔드포인트
 @app.route('/api/cards/reorder', methods=['POST'])
