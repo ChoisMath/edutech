@@ -272,13 +272,51 @@ function createCardHTML(card) {
 function openDetailModal(cardId) {
     const card = cards.find(c => c.id === cardId);
     if (!card) return;
-    
+
     const subjects = Array.isArray(card.useful_subjects) ? card.useful_subjects : [];
     const keywords = Array.isArray(card.keyword) ? card.keyword : [];
     const thumbnailUrl = card.thumbnail_url || `https://via.placeholder.com/400x300?text=${encodeURIComponent(card.webpage_name)}`;
+
+    const detailModalContainer = document.getElementById('detailModal').querySelector('.modal-content');
     
-    document.getElementById('detailContent').innerHTML = `
-        <div class="space-y-6">
+    // 모달 컨테이너를 기준으로 버튼 위치를 잡기 위해 relative 속성 추가
+    detailModalContainer.style.position = 'relative';
+
+    // 중복 생성을 막기 위해 기존 버튼 제거
+    const existingButtons = detailModalContainer.querySelector('.admin-buttons');
+    if (existingButtons) {
+        existingButtons.remove();
+    }
+
+    // 편집/삭제 버튼 컨테이너 생성 및 추가
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'admin-buttons absolute top-4 right-16 flex gap-2 z-20';
+    buttonContainer.innerHTML = `
+        <button 
+            onclick="event.stopPropagation(); closeDetailModal(); openEditModal(${card.id})"
+            class="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 shadow-lg"
+            title="편집"
+        >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+            </svg>
+        </button>
+        <button 
+            onclick="event.stopPropagation(); closeDetailModal(); openDeleteModal(${card.id})"
+            class="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-lg"
+            title="삭제"
+        >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+        </button>
+    `;
+    detailModalContainer.appendChild(buttonContainer);
+
+    // 상세 내용 설정
+    const detailContent = document.getElementById('detailContent');
+    detailContent.innerHTML = `
+        <div class="space-y-6 pt-8">
             <div class="text-center">
                 <img 
                     src="${thumbnailUrl}" 
@@ -346,6 +384,8 @@ function openDetailModal(cardId) {
 // 추가 모달 열기
 function openAddModal() {
     document.getElementById('addCardForm').reset();
+    resetAddThumbnail();
+    setupAddThumbnailEvents();
     addModal.classList.remove('hidden');
 }
 
@@ -371,8 +411,8 @@ function openEditModal(cardId) {
         showEditCurrentThumbnail(card.thumbnail_url);
     }
     
-    // 썸네일 업로드 이벤트 리스너 초기화
-    initializeEditThumbnailHandlers();
+    // 썸네일 편집 이벤트 설정
+    setupEditThumbnailEvents();
     
     editModal.classList.remove('hidden');
 }
@@ -415,7 +455,7 @@ function closeDownloadModal() {
 async function handleAddCard(e) {
     e.preventDefault();
     
-    const cardData = {
+    let cardData = {
         url: document.getElementById('cardUrl').value,
         webpage_name: document.getElementById('cardName').value,
         user_summary: document.getElementById('cardSummary').value,
@@ -425,6 +465,15 @@ async function handleAddCard(e) {
     };
     
     try {
+        // 새로운 썸네일이 업로드된 경우 먼저 업로드
+        const fileInput = document.getElementById('addThumbnailFile');
+        if (fileInput.files && fileInput.files[0]) {
+            const thumbnailUrl = await uploadThumbnail(fileInput.files[0]);
+            if (thumbnailUrl) {
+                cardData.thumbnail_url = thumbnailUrl;
+            }
+        }
+        
         const response = await fetch('/api/cards', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -612,8 +661,6 @@ async function handleCardReorder(evt) {
     if (!isDragModeEnabled) {
         return;
     }
-    
-    console.log('카드 순서 변경:', evt.oldIndex, '→', evt.newIndex);
 }
 
 // 드래그 모드 토글
@@ -641,8 +688,6 @@ function enableDragMode() {
         // 이미 있는 경우 활성화
         sortable.option("disabled", false);
     }
-    
-    console.log('드래그 모드 활성화');
 }
 
 // 드래그 모드 비활성화
@@ -653,8 +698,6 @@ function disableDragMode() {
     if (sortable) {
         sortable.option("disabled", true);
     }
-    
-    console.log('드래그 모드 비활성화');
 }
 
 // 순서 저장 처리
@@ -701,34 +744,162 @@ async function handleSaveOrder() {
     }
 }
 
-// 편집 모달 썸네일 관련 함수들
+// 추가 모달 썸네일 이벤트 설정
+function setupAddThumbnailEvents() {
+    const dropzone = document.getElementById('addThumbnailDropzone');
+    const fileInput = document.getElementById('addThumbnailFile');
+    
+    if (dropzone && fileInput) {
+        // 새로운 이벤트 리스너로 교체
+        dropzone.replaceWith(dropzone.cloneNode(true));
+        fileInput.replaceWith(fileInput.cloneNode(true));
+        
+        // 업데이트된 요소 다시 가져오기
+        const newDropzone = document.getElementById('addThumbnailDropzone');
+        const newFileInput = document.getElementById('addThumbnailFile');
+        
+        // 클릭 이벤트
+        newDropzone.addEventListener('click', () => {
+            newFileInput.click();
+        });
+        
+        // 파일 변경 이벤트
+        newFileInput.addEventListener('change', handleAddThumbnailSelect);
+        
+        // 드래그 앤 드롭 이벤트
+        newDropzone.addEventListener('dragover', handleAddDragOver);
+        newDropzone.addEventListener('dragleave', handleAddDragLeave);
+        newDropzone.addEventListener('drop', handleAddDrop);
+    }
+    
+    // 이미지 제거 버튼 이벤트
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.id === 'addRemoveThumbnail') {
+            removeAddThumbnail();
+        }
+    });
+}
 
-// 썸네일 업로드 핸들러 초기화
-function initializeEditThumbnailHandlers() {
+// 편집 모달 썸네일 이벤트 설정
+function setupEditThumbnailEvents() {
+    // 기존 이벤트 리스너 제거 (중복 방지)
     const dropzone = document.getElementById('editThumbnailDropzone');
     const fileInput = document.getElementById('editThumbnailFile');
-    const removeButton = document.getElementById('editRemoveThumbnail');
-
-    // 드롭존 클릭시 파일 선택
-    dropzone.addEventListener('click', () => {
-        fileInput.click();
+    
+    if (dropzone && fileInput) {
+        // 새로운 이벤트 리스너로 교체
+        dropzone.replaceWith(dropzone.cloneNode(true));
+        fileInput.replaceWith(fileInput.cloneNode(true));
+        
+        // 업데이트된 요소 다시 가져오기
+        const newDropzone = document.getElementById('editThumbnailDropzone');
+        const newFileInput = document.getElementById('editThumbnailFile');
+        
+        // 클릭 이벤트
+        newDropzone.addEventListener('click', () => {
+            newFileInput.click();
+        });
+        
+        // 파일 변경 이벤트
+        newFileInput.addEventListener('change', handleEditThumbnailSelect);
+        
+        // 드래그 앤 드롭 이벤트
+        newDropzone.addEventListener('dragover', handleEditDragOver);
+        newDropzone.addEventListener('dragleave', handleEditDragLeave);
+        newDropzone.addEventListener('drop', handleEditDrop);
+    }
+    
+    // 이미지 제거 버튼 이벤트 (동적으로 생성되므로 이벤트 위임 사용)
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.id === 'editRemoveThumbnail') {
+            removeEditThumbnail();
+        }
     });
+}
 
-    // 파일 선택시 미리보기
-    fileInput.addEventListener('change', handleEditThumbnailSelect);
+// 추가 모달 썸네일 처리 함수들
+function handleAddThumbnailSelect(e) {
+    const file = e.target.files[0];
+    if (!file) return;
 
-    // 드래그 앤 드롭 이벤트
-    dropzone.addEventListener('dragover', handleEditDragOver);
-    dropzone.addEventListener('dragleave', handleEditDragLeave);
-    dropzone.addEventListener('drop', handleEditDrop);
+    // 파일 유효성 검사
+    if (!file.type.startsWith('image/')) {
+        alert('이미지 파일만 업로드 가능합니다.');
+        return;
+    }
 
-    // 이미지 제거 버튼
-    if (removeButton) {
-        removeButton.addEventListener('click', removeEditThumbnail);
+    if (file.size > 1 * 1024 * 1024) { // 1MB
+        alert('파일 크기는 1MB 이하여야 합니다.');
+        return;
+    }
+
+    // 미리보기 표시
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        showAddThumbnailPreview(e.target.result);
+    };
+    reader.readAsDataURL(file);
+}
+
+function handleAddDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const dropzone = document.getElementById('addThumbnailDropzone');
+    dropzone.classList.add('border-blue-500', 'bg-blue-50');
+}
+
+function handleAddDragLeave(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const dropzone = document.getElementById('addThumbnailDropzone');
+    dropzone.classList.remove('border-blue-500', 'bg-blue-50');
+}
+
+function handleAddDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const dropzone = document.getElementById('addThumbnailDropzone');
+    dropzone.classList.remove('border-blue-500', 'bg-blue-50');
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        const fileInput = document.getElementById('addThumbnailFile');
+        fileInput.files = files;
+        handleAddThumbnailSelect({ target: fileInput });
     }
 }
 
-// 드래그 오버 처리
+function showAddThumbnailPreview(src) {
+    const preview = document.getElementById('addThumbnailPreview');
+    const previewImg = document.getElementById('addThumbnailPreviewImg');
+    const dropzone = document.getElementById('addThumbnailDropzone');
+    
+    previewImg.src = src;
+    preview.classList.remove('hidden');
+    dropzone.classList.add('hidden');
+}
+
+function removeAddThumbnail() {
+    const fileInput = document.getElementById('addThumbnailFile');
+    const preview = document.getElementById('addThumbnailPreview');
+    const dropzone = document.getElementById('addThumbnailDropzone');
+    
+    fileInput.value = '';
+    preview.classList.add('hidden');
+    dropzone.classList.remove('hidden');
+}
+
+function resetAddThumbnail() {
+    const preview = document.getElementById('addThumbnailPreview');
+    const dropzone = document.getElementById('addThumbnailDropzone');
+    const fileInput = document.getElementById('addThumbnailFile');
+    
+    preview.classList.add('hidden');
+    dropzone.classList.remove('hidden');
+    fileInput.value = '';
+}
+
+// 편집 모달 썸네일 드래그 앤 드롭 처리
 function handleEditDragOver(e) {
     e.preventDefault();
     e.stopPropagation();
