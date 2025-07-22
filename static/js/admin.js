@@ -363,6 +363,17 @@ function openEditModal(cardId) {
     document.getElementById('editCardMeaning').value = card.educational_meaning || '';
     document.getElementById('editPassword').value = '';
     
+    // 썸네일 관련 요소 초기화
+    resetEditThumbnail();
+    
+    // 현재 썸네일이 있으면 표시
+    if (card.thumbnail_url) {
+        showEditCurrentThumbnail(card.thumbnail_url);
+    }
+    
+    // 썸네일 업로드 이벤트 리스너 초기화
+    initializeEditThumbnailHandlers();
+    
     editModal.classList.remove('hidden');
 }
 
@@ -441,7 +452,7 @@ async function handleEditCard(e) {
     const cardId = document.getElementById('editCardId').value;
     const password = document.getElementById('editPassword').value;
     
-    const cardData = {
+    let cardData = {
         password: password,
         url: document.getElementById('editCardUrl').value,
         webpage_name: document.getElementById('editCardName').value,
@@ -452,6 +463,15 @@ async function handleEditCard(e) {
     };
     
     try {
+        // 새로운 썸네일이 업로드된 경우 먼저 업로드
+        const fileInput = document.getElementById('editThumbnailFile');
+        if (fileInput.files && fileInput.files[0]) {
+            const thumbnailUrl = await uploadThumbnail(fileInput.files[0]);
+            if (thumbnailUrl) {
+                cardData.thumbnail_url = thumbnailUrl;
+            }
+        }
+        
         const response = await fetch(`/api/cards/${cardId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -678,6 +698,156 @@ async function handleSaveOrder() {
     } catch (error) {
         console.error('카드 순서 저장 실패:', error);
         alert('카드 순서 저장 중 오류가 발생했습니다.');
+    }
+}
+
+// 편집 모달 썸네일 관련 함수들
+
+// 썸네일 업로드 핸들러 초기화
+function initializeEditThumbnailHandlers() {
+    const dropzone = document.getElementById('editThumbnailDropzone');
+    const fileInput = document.getElementById('editThumbnailFile');
+    const removeButton = document.getElementById('editRemoveThumbnail');
+
+    // 드롭존 클릭시 파일 선택
+    dropzone.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    // 파일 선택시 미리보기
+    fileInput.addEventListener('change', handleEditThumbnailSelect);
+
+    // 드래그 앤 드롭 이벤트
+    dropzone.addEventListener('dragover', handleEditDragOver);
+    dropzone.addEventListener('dragleave', handleEditDragLeave);
+    dropzone.addEventListener('drop', handleEditDrop);
+
+    // 이미지 제거 버튼
+    if (removeButton) {
+        removeButton.addEventListener('click', removeEditThumbnail);
+    }
+}
+
+// 드래그 오버 처리
+function handleEditDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const dropzone = document.getElementById('editThumbnailDropzone');
+    dropzone.classList.add('border-blue-500', 'bg-blue-50');
+}
+
+// 드래그 리브 처리
+function handleEditDragLeave(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const dropzone = document.getElementById('editThumbnailDropzone');
+    dropzone.classList.remove('border-blue-500', 'bg-blue-50');
+}
+
+// 드롭 처리
+function handleEditDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const dropzone = document.getElementById('editThumbnailDropzone');
+    dropzone.classList.remove('border-blue-500', 'bg-blue-50');
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        const fileInput = document.getElementById('editThumbnailFile');
+        fileInput.files = files;
+        handleEditThumbnailSelect({ target: fileInput });
+    }
+}
+
+// 파일 선택 처리
+function handleEditThumbnailSelect(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // 파일 유효성 검사
+    if (!file.type.startsWith('image/')) {
+        alert('이미지 파일만 업로드 가능합니다.');
+        return;
+    }
+
+    if (file.size > 1 * 1024 * 1024) { // 1MB
+        alert('파일 크기는 1MB 이하여야 합니다.');
+        return;
+    }
+
+    // 미리보기 표시
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        showEditThumbnailPreview(e.target.result);
+    };
+    reader.readAsDataURL(file);
+}
+
+// 현재 썸네일 표시
+function showEditCurrentThumbnail(thumbnailUrl) {
+    const currentThumbnail = document.getElementById('editCurrentThumbnail');
+    const currentThumbnailImg = document.getElementById('editCurrentThumbnailImg');
+    
+    currentThumbnailImg.src = thumbnailUrl;
+    currentThumbnail.classList.remove('hidden');
+}
+
+// 썸네일 미리보기 표시
+function showEditThumbnailPreview(src) {
+    const preview = document.getElementById('editThumbnailPreview');
+    const previewImg = document.getElementById('editThumbnailPreviewImg');
+    const dropzone = document.getElementById('editThumbnailDropzone');
+    
+    previewImg.src = src;
+    preview.classList.remove('hidden');
+    dropzone.classList.add('hidden');
+}
+
+// 썸네일 제거
+function removeEditThumbnail() {
+    const fileInput = document.getElementById('editThumbnailFile');
+    const preview = document.getElementById('editThumbnailPreview');
+    const dropzone = document.getElementById('editThumbnailDropzone');
+    
+    fileInput.value = '';
+    preview.classList.add('hidden');
+    dropzone.classList.remove('hidden');
+}
+
+// 썸네일 관련 요소 초기화
+function resetEditThumbnail() {
+    const currentThumbnail = document.getElementById('editCurrentThumbnail');
+    const preview = document.getElementById('editThumbnailPreview');
+    const dropzone = document.getElementById('editThumbnailDropzone');
+    const fileInput = document.getElementById('editThumbnailFile');
+    
+    currentThumbnail.classList.add('hidden');
+    preview.classList.add('hidden');
+    dropzone.classList.remove('hidden');
+    fileInput.value = '';
+}
+
+// 썸네일 업로드 (기존 함수 재사용)
+async function uploadThumbnail(file) {
+    const formData = new FormData();
+    formData.append('thumbnail', file);
+    
+    try {
+        const response = await fetch('/api/upload-thumbnail', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            return data.url;
+        } else {
+            console.error('썸네일 업로드 실패');
+            return null;
+        }
+    } catch (error) {
+        console.error('썸네일 업로드 오류:', error);
+        return null;
     }
 }
 

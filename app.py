@@ -51,7 +51,7 @@ app = Flask(__name__)
 
 # 파일 업로드 설정 (Supabase Storage 전용)
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+app.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024  # 1MB max file size
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -354,6 +354,14 @@ def upload_thumbnail():
             return jsonify({'error': 'No file selected'}), 400
         
         if file and allowed_file(file.filename):
+            # 파일 크기 체크 (1MB 제한)
+            file.seek(0, 2)  # 파일 끝으로 이동
+            file_size = file.tell()
+            file.seek(0)  # 파일 시작으로 돌아가기
+            
+            if file_size > 1 * 1024 * 1024:  # 1MB
+                return jsonify({'error': 'File size must be less than 1MB'}), 400
+            
             # 고유한 파일명 생성
             file_extension = file.filename.rsplit('.', 1)[1].lower()
             unique_filename = f"{uuid.uuid4().hex}.{file_extension}"

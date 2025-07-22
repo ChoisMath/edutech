@@ -684,3 +684,23 @@
 조회된 카드 수: 188
 첫 번째 카드: 구글 아트앤컬처
 2025-07-22 15:26:35,262 - werkzeug - INFO - 127.0.0.1 - - [22/Jul/2025 15:26:35] "GET /api/cards HTTP/1.1" 200 -
+2025-07-22 15:40:15,295 - werkzeug - INFO - 127.0.0.1 - - [22/Jul/2025 15:40:15] "GET / HTTP/1.1" 200 -
+2025-07-22 15:40:15,345 - werkzeug - INFO - 127.0.0.1 - - [22/Jul/2025 15:40:15] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-07-22 15:40:15,346 - werkzeug - INFO - 127.0.0.1 - - [22/Jul/2025 15:40:15] "[36mGET /static/js/view.js HTTP/1.1[0m" 304 -
+=== API /api/cards GET 요청 받음 ===
+검색 조건 - search: '', category: '', subject: ''
+데이터베이스 쿼리 실행 중...
+2025-07-22 15:40:15,962 - httpx - INFO - HTTP Request: GET https://ehsksxlciaukdbfaaogy.supabase.co/rest/v1/edutech_cards?select=%2A&view=eq.1&order=sort_order.asc%2Ccreated_at.desc "HTTP/2 200 OK"
+조회된 카드 수: 188
+첫 번째 카드: trythis
+2025-07-22 15:40:15,973 - werkzeug - INFO - 127.0.0.1 - - [22/Jul/2025 15:40:15] "GET /api/cards HTTP/1.1" 200 -
+2025-07-22 15:40:52,939 - werkzeug - INFO - 127.0.0.1 - - [22/Jul/2025 15:40:52] "GET /admin HTTP/1.1" 200 -
+2025-07-22 15:40:53,008 - werkzeug - INFO - 127.0.0.1 - - [22/Jul/2025 15:40:53] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-07-22 15:40:53,008 - werkzeug - INFO - 127.0.0.1 - - [22/Jul/2025 15:40:53] "[36mGET /static/js/admin.js HTTP/1.1[0m" 304 -
+=== API /api/cards GET 요청 받음 ===
+검색 조건 - search: '', category: '', subject: ''
+데이터베이스 쿼리 실행 중...
+2025-07-22 15:40:53,216 - httpx - INFO - HTTP Request: GET https://ehsksxlciaukdbfaaogy.supabase.co/rest/v1/edutech_cards?select=%2A&view=eq.1&order=sort_order.asc%2Ccreated_at.desc "HTTP/2 200 OK"
+조회된 카드 수: 188
+첫 번째 카드: 노트북LM(NotebookLM)
+2025-07-22 15:40:53,227 - werkzeug - INFO - 127.0.0.1 - - [22/Jul/2025 15:40:53] "GET /api/cards HTTP/1.1" 200 -
