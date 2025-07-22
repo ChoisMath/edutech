@@ -108,3 +108,64 @@
         padding: 1rem;
     }
 }
+
+/* 고정 헤더 및 검색창 스타일 */
+.fixed-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background-color: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.fixed-search {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 999;
+    background-color: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* 콘텐츠 상단 여백 (고정 헤더/검색창 때문에) */
+.content-with-fixed-header {
+    margin-top: 200px; /* 헤더 + 검색창 높이만큼 여백 */
+}
+
+/* 고정 푸터 스타일 */
+.fixed-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 998;
+    background-color: #1f2937;
+    color: white;
+}
+
+/* 콘텐츠 하단 여백 (고정 푸터 때문에) */
+.content-with-fixed-footer {
+    margin-bottom: 50px; /* 푸터 높이만큼 여백 */
+}
+
+/* 검색바 한 줄 유지 스타일 */
+.search-container {
+    min-width: 0; /* flex-shrink 허용 */
+}
+
+.search-container .flex-shrink-0 {
+    white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+}
+
+.search-container .flex-1 {
+    min-width: 0; /* input이 축소될 수 있도록 */
+}
+
+.search-container input {
+    min-width: 120px; /* 최소 너비 설정 */
+}

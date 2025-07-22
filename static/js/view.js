@@ -1,7 +1,6 @@
 // 전역 변수
 let cards = [];
 let filteredCards = [];
-let currentFilter = 'all';
 let searchQuery = '';
 
 // DOM 요소
@@ -19,11 +18,6 @@ document.addEventListener('DOMContentLoaded', function() {
 function initializeEventListeners() {
     // 검색
     searchInput.addEventListener('input', handleSearch);
-    
-    // 필터 버튼
-    document.getElementById('filterAll').addEventListener('click', () => setFilter('all'));
-    document.getElementById('filterSubject').addEventListener('click', () => setFilter('subject'));
-    document.getElementById('filterKeyword').addEventListener('click', () => setFilter('keyword'));
     
     // 상세 모달 관련
     document.getElementById('closeDetailModal').addEventListener('click', closeDetailModal);
@@ -78,29 +72,13 @@ function handleSearch() {
     filterCards();
 }
 
-// 필터 설정
-function setFilter(filter) {
-    currentFilter = filter;
-    
-    // 필터 버튼 스타일 업데이트
-    document.querySelectorAll('[id^="filter"]').forEach(btn => {
-        btn.classList.remove('bg-blue-500', 'text-white');
-        btn.classList.add('bg-gray-200', 'text-gray-700');
-    });
-    
-    document.getElementById('filter' + filter.charAt(0).toUpperCase() + filter.slice(1)).classList.remove('bg-gray-200', 'text-gray-700');
-    document.getElementById('filter' + filter.charAt(0).toUpperCase() + filter.slice(1)).classList.add('bg-blue-500', 'text-white');
-    
-    filterCards();
-}
-
-// 카드 필터링
+// 카드 필터링 (전체 검색: 제목, 요약, 교과목, 키워드 통합)
 function filterCards() {
     let filtered = [...cards];
     
-    // 검색어 필터링
+    // 전체 검색 (제목, 요약, 교과목, 키워드에서 통합 검색)
     if (searchQuery) {
-        const queries = searchQuery.split(',').map(q => q.trim().toLowerCase()).filter(q => q);
+        const queries = searchQuery.split(' ').map(q => q.trim().toLowerCase()).filter(q => q);
         filtered = filtered.filter(card => {
             const searchText = `${card.webpage_name} ${card.user_summary || ''} ${(card.useful_subjects || []).join(' ')} ${(card.keyword || []).join(' ')}`.toLowerCase();
             return queries.some(query => searchText.includes(query));

@@ -1,7 +1,6 @@
 // 전역 변수
 let cards = [];
 let filteredCards = [];
-let currentFilter = 'all';
 let searchQuery = '';
 let sortable = null;
 let isDragModeEnabled = false;
@@ -29,11 +28,6 @@ document.addEventListener('DOMContentLoaded', function() {
 function initializeEventListeners() {
     // 검색
     searchInput.addEventListener('input', handleSearch);
-    
-    // 필터 버튼
-    document.getElementById('filterAll').addEventListener('click', () => setFilter('all'));
-    document.getElementById('filterSubject').addEventListener('click', () => setFilter('subject'));
-    document.getElementById('filterKeyword').addEventListener('click', () => setFilter('keyword'));
     
     // 모달 관련
     addButton.addEventListener('click', openAddModal);
@@ -124,29 +118,14 @@ function handleSearch() {
     filterCards();
 }
 
-// 필터 설정
-function setFilter(filter) {
-    currentFilter = filter;
-    
-    // 필터 버튼 스타일 업데이트
-    document.querySelectorAll('[id^="filter"]').forEach(btn => {
-        btn.classList.remove('bg-blue-500', 'text-white');
-        btn.classList.add('bg-gray-200', 'text-gray-700');
-    });
-    
-    document.getElementById('filter' + filter.charAt(0).toUpperCase() + filter.slice(1)).classList.remove('bg-gray-200', 'text-gray-700');
-    document.getElementById('filter' + filter.charAt(0).toUpperCase() + filter.slice(1)).classList.add('bg-blue-500', 'text-white');
-    
-    filterCards();
-}
 
-// 카드 필터링
+// 카드 필터링 (전체 검색: 제목, 요약, 교과목, 키워드 통합)
 function filterCards() {
     let filtered = [...cards];
     
-    // 검색어 필터링
+    // 전체 검색 (제목, 요약, 교과목, 키워드에서 통합 검색)
     if (searchQuery) {
-        const queries = searchQuery.split(',').map(q => q.trim().toLowerCase()).filter(q => q);
+        const queries = searchQuery.split(' ').map(q => q.trim().toLowerCase()).filter(q => q);
         filtered = filtered.filter(card => {
             const searchText = `${card.webpage_name} ${card.user_summary || ''} ${(card.useful_subjects || []).join(' ')} ${(card.keyword || []).join(' ')}`.toLowerCase();
             return queries.some(query => searchText.includes(query));
@@ -171,9 +150,9 @@ function renderCards() {
     
     cardsGrid.innerHTML = filteredCards.map(card => createCardHTML(card)).join('');
     
-    // 검색/필터가 적용되지 않은 상태이고 카드에 sort_order가 있는 경우에만 드래그 앤 드롭 준비
+    // 검색이 적용되지 않은 상태이고 카드에 sort_order가 있는 경우에만 드래그 앤 드롭 준비
     const hasSortOrder = filteredCards.length > 0 && filteredCards[0].hasOwnProperty('sort_order');
-    if (!searchQuery && currentFilter === 'all' && hasSortOrder) {
+    if (!searchQuery && hasSortOrder) {
         if (!sortable) {
             initializeSortable();
         }
@@ -195,7 +174,7 @@ function createCardHTML(card) {
     return `
         <div class="card-item bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden relative group ${isDragModeEnabled ? 'drag-mode-enabled border-2 border-blue-200' : ''}" data-card-id="${card.id}">
             <!-- 드래그 핸들 -->
-            ${isDragModeEnabled && !searchQuery && currentFilter === 'all' && card.hasOwnProperty('sort_order') ? `
+            ${isDragModeEnabled && !searchQuery && card.hasOwnProperty('sort_order') ? `
                 <div class="drag-handle absolute top-2 left-2 opacity-100 transition-opacity duration-200 z-10 cursor-move">
                     <div class="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 shadow-lg" title="드래그하여 순서 변경">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -459,8 +438,8 @@ async function handleAddCard(e) {
         url: document.getElementById('cardUrl').value,
         webpage_name: document.getElementById('cardName').value,
         user_summary: document.getElementById('cardSummary').value,
-        useful_subjects: document.getElementById('cardSubjects').value.split(',').map(s => s.trim()).filter(s => s),
-        keyword: document.getElementById('cardKeyword').value.split(',').map(k => k.trim()).filter(k => k),
+        useful_subjects: document.getElementById('cardSubjects').value.split(' ').map(s => s.trim()).filter(s => s),
+        keyword: document.getElementById('cardKeyword').value.split(' ').map(k => k.trim()).filter(k => k),
         educational_meaning: document.getElementById('cardMeaning').value
     };
     
@@ -506,8 +485,8 @@ async function handleEditCard(e) {
         url: document.getElementById('editCardUrl').value,
         webpage_name: document.getElementById('editCardName').value,
         user_summary: document.getElementById('editCardSummary').value,
-        useful_subjects: document.getElementById('editCardSubjects').value.split(',').map(s => s.trim()).filter(s => s),
-        keyword: document.getElementById('editCardKeyword').value.split(',').map(k => k.trim()).filter(k => k),
+        useful_subjects: document.getElementById('editCardSubjects').value.split(' ').map(s => s.trim()).filter(s => s),
+        keyword: document.getElementById('editCardKeyword').value.split(' ').map(k => k.trim()).filter(k => k),
         educational_meaning: document.getElementById('editCardMeaning').value
     };
     

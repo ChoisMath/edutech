@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}에듀테크 공유 플랫폼{% endblock %}</title>
+    <title>{% block title %}Chois_EduCard{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
@@ -11,9 +11,9 @@
     {% block content %}{% endblock %}
     
     <!-- Footer -->
-    <footer class="bg-gray-800 text-white py-6 mt-12">
+    <footer class="fixed-footer py-2">
         <div class="container mx-auto px-4 text-center">
-            <p class="text-sm text-gray-300">2025.07 AI디지털 기반 교육혁신 연수 @Chois</p>
+            <p class="text-xs text-gray-300">2025.07 AI디지털 기반 교육혁신 연수 @Chois</p>
         </div>
     </footer>
     
