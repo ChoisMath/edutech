@@ -1,31 +1,58 @@
-2025-07-22 15:18:22,229 - __main__ - INFO - === Flask 앱 초기화 시작 ===
-2025-07-22 15:18:22,272 - __main__ - INFO - ✅ 환경변수 로드 완료
-2025-07-22 15:18:22,505 - __main__ - INFO - ✅ Flask 모듈 import 완료
-2025-07-22 15:18:22,761 - __main__ - INFO - ✅ Supabase 모듈 import 완료
-2025-07-22 15:18:22,761 - __main__ - INFO - Flask 앱 생성 중...
-2025-07-22 15:18:22,763 - __main__ - INFO - Supabase 연결 설정 중...
-2025-07-22 15:18:22,763 - __main__ - INFO - Supabase URL 존재: True
-2025-07-22 15:18:22,764 - __main__ - INFO - Supabase Key 존재: True
-2025-07-22 15:18:22,834 - __main__ - INFO - ✅ Supabase 클라이언트 생성 완료
-2025-07-22 15:18:22,835 - __main__ - WARNING - ⚠️ Service Role Key 없음, anon key 사용
-2025-07-22 15:18:22,970 - httpx - INFO - HTTP Request: GET https://ehsksxlciaukdbfaaogy.supabase.co/rest/v1/edutech_cards?select=id&view=eq.1&limit=1 "HTTP/2 200 OK"
-2025-07-22 15:18:22,975 - __main__ - INFO - ✅ Supabase 연결 테스트 성공 - 데이터: True
-2025-07-22 15:18:22,976 - __main__ - INFO - === Flask 앱 초기화 완료 ===
-2025-07-22 15:18:22,982 - __main__ - INFO - Railway 환경: False
-2025-07-22 15:18:22,983 - __main__ - INFO - === 앱 초기화 완료 요약 ===
-2025-07-22 15:18:22,983 - __main__ - INFO - ✅ Flask 앱: app
-2025-07-22 15:18:22,985 - __main__ - INFO - ✅ Supabase 연결: 성공
-2025-07-22 15:18:22,985 - __main__ - INFO - ✅ Supabase Storage 버킷: edutech-thumbnails
-2025-07-22 15:18:22,986 - __main__ - INFO - ✅ 환경: 로컬
-2025-07-22 15:18:22,987 - __main__ - INFO - 🚀 로컬 서버 시작: 포트 5000, 디버그 False
+2025-07-22 15:23:40,072 - __main__ - INFO - === Flask 앱 초기화 시작 ===
+2025-07-22 15:23:40,127 - __main__ - INFO - ✅ 환경변수 로드 완료
+2025-07-22 15:23:40,331 - __main__ - INFO - ✅ Flask 모듈 import 완료
+2025-07-22 15:23:40,557 - __main__ - INFO - ✅ Supabase 모듈 import 완료
+2025-07-22 15:23:40,557 - __main__ - INFO - Flask 앱 생성 중...
+2025-07-22 15:23:40,558 - __main__ - INFO - Supabase 연결 설정 중...
+2025-07-22 15:23:40,559 - __main__ - INFO - Supabase URL 존재: True
+2025-07-22 15:23:40,559 - __main__ - INFO - Supabase Key 존재: True
+2025-07-22 15:23:40,626 - __main__ - INFO - ✅ Supabase 클라이언트 생성 완료
+2025-07-22 15:23:40,626 - __main__ - WARNING - ⚠️ Service Role Key 없음, anon key 사용
+2025-07-22 15:23:40,756 - httpx - INFO - HTTP Request: GET https://ehsksxlciaukdbfaaogy.supabase.co/rest/v1/edutech_cards?select=id&view=eq.1&limit=1 "HTTP/2 200 OK"
+2025-07-22 15:23:40,761 - __main__ - INFO - ✅ Supabase 연결 테스트 성공 - 데이터: True
+2025-07-22 15:23:40,762 - __main__ - INFO - === Flask 앱 초기화 완료 ===
+2025-07-22 15:23:40,767 - __main__ - INFO - Railway 환경: False
+2025-07-22 15:23:40,768 - __main__ - INFO - === 앱 초기화 완료 요약 ===
+2025-07-22 15:23:40,768 - __main__ - INFO - ✅ Flask 앱: app
+2025-07-22 15:23:40,769 - __main__ - INFO - ✅ Supabase 연결: 성공
+2025-07-22 15:23:40,770 - __main__ - INFO - ✅ Supabase Storage 버킷: edutech-thumbnails
+2025-07-22 15:23:40,771 - __main__ - INFO - ✅ 환경: 로컬
+2025-07-22 15:23:40,771 - __main__ - INFO - 🚀 로컬 서버 시작: 포트 5000, 디버그 False
  * Serving Flask app 'app'
  * Debug mode: off
-2025-07-22 15:18:23,009 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+2025-07-22 15:23:40,792 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
  * Running on all addresses (0.0.0.0)
  * Running on http://127.0.0.1:5000
  * Running on http://172.17.22.252:5000
-2025-07-22 15:18:23,009 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
-2025-07-22 15:18:34,773 - werkzeug - INFO - 127.0.0.1 - - [22/Jul/2025 15:18:34] "GET / HTTP/1.1" 200 -
-2025-07-22 15:18:43,210 - werkzeug - INFO - 127.0.0.1 - - [22/Jul/2025 15:18:43] "GET /admin HTTP/1.1" 200 -
-2025-07-22 15:18:52,554 - werkzeug - INFO - 127.0.0.1 - - [22/Jul/2025 15:18:52] "GET /static/js/view.js HTTP/1.1" 200 -
-2025-07-22 15:18:59,907 - werkzeug - INFO - 127.0.0.1 - - [22/Jul/2025 15:18:59] "GET /static/js/admin.js HTTP/1.1" 200 -
+2025-07-22 15:23:40,793 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-07-22 15:23:52,013 - werkzeug - INFO - 127.0.0.1 - - [22/Jul/2025 15:23:52] "GET /admin HTTP/1.1" 200 -
+2025-07-22 15:23:52,073 - werkzeug - INFO - 127.0.0.1 - - [22/Jul/2025 15:23:52] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-07-22 15:23:52,077 - werkzeug - INFO - 127.0.0.1 - - [22/Jul/2025 15:23:52] "[36mGET /static/js/admin.js HTTP/1.1[0m" 304 -
+=== API /api/cards GET 요청 받음 ===
+검색 조건 - search: '', category: '', subject: ''
+데이터베이스 쿼리 실행 중...
+2025-07-22 15:23:52,203 - httpx - INFO - HTTP Request: GET https://ehsksxlciaukdbfaaogy.supabase.co/rest/v1/edutech_cards?select=%2A&view=eq.1&order=sort_order.asc%2Ccreated_at.desc "HTTP/2 200 OK"
+조회된 카드 수: 188
+첫 번째 카드: 클로바노트
+2025-07-22 15:23:52,209 - werkzeug - INFO - 127.0.0.1 - - [22/Jul/2025 15:23:52] "GET /api/cards HTTP/1.1" 200 -
+2025-07-22 15:23:54,242 - werkzeug - INFO - 127.0.0.1 - - [22/Jul/2025 15:23:54] "GET /admin HTTP/1.1" 200 -
+2025-07-22 15:23:54,271 - werkzeug - INFO - 127.0.0.1 - - [22/Jul/2025 15:23:54] "[36mGET /static/js/admin.js HTTP/1.1[0m" 304 -
+2025-07-22 15:23:54,272 - werkzeug - INFO - 127.0.0.1 - - [22/Jul/2025 15:23:54] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+=== API /api/cards GET 요청 받음 ===
+검색 조건 - search: '', category: '', subject: ''
+데이터베이스 쿼리 실행 중...
+2025-07-22 15:23:54,377 - httpx - INFO - HTTP Request: GET https://ehsksxlciaukdbfaaogy.supabase.co/rest/v1/edutech_cards?select=%2A&view=eq.1&order=sort_order.asc%2Ccreated_at.desc "HTTP/2 200 OK"
+조회된 카드 수: 188
+첫 번째 카드: 클로바노트
+2025-07-22 15:23:54,384 - werkzeug - INFO - 127.0.0.1 - - [22/Jul/2025 15:23:54] "GET /api/cards HTTP/1.1" 200 -
+2025-07-22 15:23:56,343 - werkzeug - INFO - 127.0.0.1 - - [22/Jul/2025 15:23:56] "GET / HTTP/1.1" 200 -
+2025-07-22 15:23:57,072 - werkzeug - INFO - 127.0.0.1 - - [22/Jul/2025 15:23:57] "GET / HTTP/1.1" 200 -
+2025-07-22 15:23:57,124 - werkzeug - INFO - 127.0.0.1 - - [22/Jul/2025 15:23:57] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-07-22 15:23:57,127 - werkzeug - INFO - 127.0.0.1 - - [22/Jul/2025 15:23:57] "[36mGET /static/js/view.js HTTP/1.1[0m" 304 -
+=== API /api/cards GET 요청 받음 ===
+검색 조건 - search: '', category: '', subject: ''
+데이터베이스 쿼리 실행 중...
+2025-07-22 15:23:57,190 - httpx - INFO - HTTP Request: GET https://ehsksxlciaukdbfaaogy.supabase.co/rest/v1/edutech_cards?select=%2A&view=eq.1&order=sort_order.asc%2Ccreated_at.desc "HTTP/2 200 OK"
+조회된 카드 수: 188
+첫 번째 카드: 클로바노트
+2025-07-22 15:23:57,196 - werkzeug - INFO - 127.0.0.1 - - [22/Jul/2025 15:23:57] "GET /api/cards HTTP/1.1" 200 -
