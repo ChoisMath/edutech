@@ -95,7 +95,11 @@ logger.info("=== Flask 앱 초기화 완료 ===")
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('view.html')
+
+@app.route('/admin')
+def admin():
+    return render_template('admin.html')
 
 # Health check endpoint for Railway
 @app.route('/health')
@@ -149,7 +153,12 @@ def cards():
             if subject:
                 query = query.contains('useful_subjects', [subject])
             
-            query = query.order('created_at', desc=True)
+            # sort_order 필드가 있으면 우선 정렬, 없으면 created_at으로만 정렬
+            try:
+                query = query.order('sort_order', desc=False).order('created_at', desc=True)
+            except Exception as sort_error:
+                print(f"sort_order 필드 정렬 실패, created_at으로 대체: {sort_error}")
+                query = query.order('created_at', desc=True)
             
             print("데이터베이스 쿼리 실행 중...")
             result = query.execute()
@@ -375,6 +384,44 @@ def upload_thumbnail():
     except Exception as e:
         print(f"Error uploading thumbnail: {e}")
         return jsonify({'error': 'Failed to upload thumbnail'}), 500
+
+# 카드 순서 업데이트 엔드포인트
+@app.route('/api/cards/reorder', methods=['POST'])
+def reorder_cards():
+    try:
+        if not supabase:
+            return jsonify({'error': 'Database not configured'}), 500
+            
+        data = request.json or {}
+        password = data.get('password', '')
+        card_orders = data.get('card_orders', [])
+        
+        # 비밀번호 확인 (관리자 비밀번호 사용)
+        ADMIN_PASSWORD = "admin"
+        
+        if password != ADMIN_PASSWORD:
+            return jsonify({'error': '비밀번호가 일치하지 않습니다'}), 401
+        
+        if not card_orders:
+            return jsonify({'error': '카드 순서 정보가 필요합니다'}), 400
+        
+        # 각 카드의 순서 업데이트
+        for order_info in card_orders:
+            card_id = order_info.get('id')
+            sort_order = order_info.get('sort_order')
+            
+            if card_id and sort_order is not None:
+                result = supabase.table('edutech_cards').update({
+                    'sort_order': sort_order
+                }).eq('id', card_id).execute()
+        
+        return jsonify({'message': '카드 순서가 성공적으로 업데이트되었습니다'})
+        
+    except Exception as e:
+        print(f"카드 순서 업데이트 오류: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': '카드 순서 업데이트 중 오류가 발생했습니다'}), 500
 
 # 로컬 파일 서빙 라우트 제거 (Supabase Storage 전용으로 변경)
 
