@@ -4,45 +4,61 @@
 <!-- 고정 헤더 및 검색바 -->
 <div class="fixed-search py-4">
     <div class="container mx-auto px-4">
-        <div class="flex justify-between items-center mb-4">
-            <h1 class="text-2xl font-bold text-gray-800">
-                에듀테크 관리자 페이지
-            </h1>
-            <div class="flex gap-3">
-                <button 
-                    id="downloadExcelButton"
-                    class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2"
-                >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                    Excel 다운로드
-                </button>
-                <a href="/" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
-                    일반 페이지로 이동
-                </a>
-            </div>
-        </div>
-        
         <!-- 검색바 -->
         <div class="bg-white rounded-lg shadow-md p-4 mb-4">
-            <div class="flex flex-row gap-4 items-center search-container">
-                <div class="flex-shrink-0">
-                    <span class="text-lg font-semibold text-gray-800">>EduTech</span>
+            <div class="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center">
+                <!-- 첫 번째 줄: 레이블과 검색창 -->
+                <div class="flex flex-row gap-4 items-center flex-1">
+                    <div class="flex-shrink-0">
+                        <span class="text-lg font-semibold text-gray-800">EduTech</span>
+                    </div>
+                    <div class="flex-1">
+                        <input
+                            type="text"
+                            id="searchInput"
+                            placeholder="(다중검색 띄어쓰기) 교과, 키워드, 제목"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                    </div>
                 </div>
-                <div class="flex-1">
-                    <input
-                        type="text"
-                        id="searchInput"
-                        placeholder="(다중검색 띄어쓰기) 교과, 키워드, 제목"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
+                
+                <!-- 두 번째 줄/오른쪽: 버튼들 -->
+                <div class="flex gap-3 justify-between lg:justify-end lg:flex-shrink-0">
+                    <button 
+                        id="downloadExcelButton"
+                        class="flex-1 lg:flex-none px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center justify-center gap-2"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <span class="hidden sm:inline">Excel 다운로드</span>
+                        <span class="sm:hidden">Excel</span>
+                    </button>
+                    <a href="/" class="flex-1 lg:flex-none px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors flex items-center justify-center">
+                        <span class="hidden sm:inline">일반 페이지로 이동</span>
+                        <span class="sm:hidden">일반 페이지</span>
+                    </a>
+                    <button
+                        id="addButton"
+                        class="flex-1 lg:flex-none px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
+                        aria-label="새 에듀테크 카드 추가"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        <span class="hidden sm:inline">추가</span>
+                    </button>
                 </div>
             </div>
         </div>
+    </div>
+</div>
 
+<!-- 메인 콘텐츠 -->
+<div class="min-h-screen bg-gray-50 content-with-fixed-header content-with-fixed-footer">
+    <div class="container mx-auto px-4 py-8">
         <!-- 드래그 모드 컨트롤 -->
-        <div class="bg-white rounded-lg shadow-md p-4">
+        <div class="bg-white rounded-lg shadow-md p-4 mb-6">
             <div class="flex items-center justify-between">
                 <label class="flex items-center cursor-pointer">
                     <input type="checkbox" id="dragModeToggle" class="mr-3 w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500">
@@ -61,12 +77,7 @@
             </div>
             <p class="text-xs text-gray-500 mt-2">편집 모드를 활성화하면 카드를 드래그하여 순서를 변경할 수 있습니다.</p>
         </div>
-    </div>
-</div>
 
-<!-- 메인 콘텐츠 -->
-<div class="min-h-screen bg-gray-50 content-with-fixed-header content-with-fixed-footer">
-    <div class="container mx-auto px-4 py-8">
         <!-- 카드 그리드 -->
         <div id="cardsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-8">
             <!-- 카드들이 여기에 동적으로 추가됩니다 -->
@@ -75,19 +86,9 @@
         <!-- 빈 상태 메시지 -->
         <div id="emptyState" class="col-span-full text-center py-12 hidden">
             <p class="text-gray-500 text-lg">등록된 에듀테크 카드가 없습니다.</p>
-            <p class="text-gray-400 text-sm mt-2">우측 하단 + 버튼을 눌러 새로운 카드를 추가해보세요!</p>
+            <p class="text-gray-400 text-sm mt-2">상단의 추가 버튼을 눌러 새로운 카드를 추가해보세요!</p>
         </div>
 
-        <!-- 플로팅 추가 버튼 -->
-        <button
-            id="addButton"
-            class="fixed bottom-6 right-6 w-14 h-14 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center z-50"
-            aria-label="새 에듀테크 카드 추가"
-        >
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-            </svg>
-        </button>
     </div>
 </div>
 
@@ -475,7 +476,7 @@
 
 <!-- Excel 다운로드 모달 -->
 <div id="downloadModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 hidden">
-    <div class="bg-white rounded-lg max-w-md w-full max-h-md h-auto modal-container">
+    <div class="bg-white rounded-lg max-w-md w-full max-h-96 h-auto modal-container">
         <div class="p-6 modal-content">
             <div class="modal-body">
                 <div class="flex justify-between items-center mb-4">
