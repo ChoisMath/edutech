@@ -213,13 +213,9 @@ def cards():
             
             # sort_order 필드가 존재하는지 확인하고 설정
             try:
-                # 새 카드의 sort_order는 가장 큰 값 + 1로 설정 (맨 뒤에 추가)
-                max_order_result = supabase.table('edutech_cards').select('sort_order').order('sort_order', desc=True).limit(1).execute()
-                next_sort_order = 1
-                if max_order_result.data and max_order_result.data[0].get('sort_order') is not None:
-                    next_sort_order = max_order_result.data[0]['sort_order'] + 1
-                new_card['sort_order'] = next_sort_order
-                print(f"sort_order 설정: {next_sort_order}")
+                # 새 카드의 sort_order는 0으로 설정 (맨 앞에 추가)
+                new_card['sort_order'] = 0
+                print(f"sort_order 설정: 0 (맨 앞에 배치)")
             except Exception as sort_error:
                 print(f"sort_order 필드 설정 실패, 건너뜀: {sort_error}")
                 # sort_order 필드가 없으면 그냥 추가하지 않음
@@ -457,18 +453,95 @@ def download_excel():
             cell.fill = header_fill
             cell.alignment = header_alignment
         
+        # 배열 필드를 안전하게 처리하는 함수
+        def safe_join(value):
+            try:
+                print(f"safe_join 처리 중 - value: {value}, type: {type(value)}, repr: {repr(value)}")
+                
+                if value is None:
+                    return ''
+                    
+                # 문자열인 경우 먼저 처리
+                if isinstance(value, str):
+                    return value.strip()
+                
+                # 리스트, 튜플 등 순회 가능한 객체인지 확인
+                try:
+                    # hasattr로 __iter__ 확인하고 string은 제외
+                    if hasattr(value, '__iter__') and not isinstance(value, (str, bytes)):
+                        # 실제로 순회해서 확인
+                        filtered_items = []
+                        for item in value:
+                            if item is not None:
+                                item_str = str(item).strip()
+                                if item_str:  # 빈 문자열이 아닌 경우만 추가
+                                    filtered_items.append(item_str)
+                        return ', '.join(filtered_items)
+                except TypeError:
+                    # 순회 불가능한 객체인 경우
+                    pass
+                
+                # 기타 타입은 문자열로 변환
+                return str(value).strip() if value else ''
+                
+            except Exception as e:
+                print(f"safe_join 오류: {e}, value: {value}, type: {type(value)}")
+                return ''
+        
+        # 첫 번째 카드의 데이터 구조 디버깅
+        if result.data:
+            first_card = result.data[0]
+            print(f"첫 번째 카드 디버깅:")
+            print(f"  - useful_subjects: {first_card.get('useful_subjects')} (type: {type(first_card.get('useful_subjects'))})")
+            print(f"  - keyword: {first_card.get('keyword')} (type: {type(first_card.get('keyword'))})")
+            print(f"  - 전체 키: {first_card.keys()}")
+        
         # 데이터 작성
         for row, card in enumerate(result.data, 2):
-            ws.cell(row=row, column=1, value=card.get('id'))
-            ws.cell(row=row, column=2, value=card.get('webpage_name', ''))
-            ws.cell(row=row, column=3, value=card.get('url', ''))
-            ws.cell(row=row, column=4, value=card.get('user_summary', ''))
-            ws.cell(row=row, column=5, value=', '.join(card.get('useful_subjects', [])))
-            ws.cell(row=row, column=6, value=', '.join(card.get('keyword', [])))
-            ws.cell(row=row, column=7, value=card.get('educational_meaning', ''))
-            ws.cell(row=row, column=8, value=card.get('created_at', ''))
-            ws.cell(row=row, column=9, value=card.get('updated_at', ''))
-            ws.cell(row=row, column=10, value=card.get('sort_order', ''))
+            try:
+                ws.cell(row=row, column=1, value=card.get('id'))
+                ws.cell(row=row, column=2, value=card.get('webpage_name', ''))
+                ws.cell(row=row, column=3, value=card.get('url', ''))
+                ws.cell(row=row, column=4, value=card.get('user_summary', ''))
+                
+                # 안전하게 배열 필드 처리 - 직접 구현
+                useful_subjects = card.get('useful_subjects')
+                if useful_subjects is None:
+                    subjects_str = ''
+                elif isinstance(useful_subjects, str):
+                    subjects_str = useful_subjects
+                elif hasattr(useful_subjects, '__len__') and len(useful_subjects) > 0:
+                    try:
+                        subjects_str = ', '.join([str(x) for x in useful_subjects if x])
+                    except:
+                        subjects_str = str(useful_subjects)
+                else:
+                    subjects_str = str(useful_subjects) if useful_subjects else ''
+                ws.cell(row=row, column=5, value=subjects_str)
+                
+                keyword = card.get('keyword')
+                if keyword is None:
+                    keyword_str = ''
+                elif isinstance(keyword, str):
+                    keyword_str = keyword
+                elif hasattr(keyword, '__len__') and len(keyword) > 0:
+                    try:
+                        keyword_str = ', '.join([str(x) for x in keyword if x])
+                    except:
+                        keyword_str = str(keyword)
+                else:
+                    keyword_str = str(keyword) if keyword else ''
+                ws.cell(row=row, column=6, value=keyword_str)
+                
+                ws.cell(row=row, column=7, value=card.get('educational_meaning', ''))
+                ws.cell(row=row, column=8, value=card.get('created_at', ''))
+                ws.cell(row=row, column=9, value=card.get('updated_at', ''))
+                ws.cell(row=row, column=10, value=card.get('sort_order', ''))
+            except Exception as row_error:
+                print(f"Row {row} 처리 오류: {row_error}")
+                print(f"Card data: {card}")
+                # 오류가 발생한 행은 건너뛰고 계속 진행
+                continue
         
         # 열 너비 자동 조정
         for column in ws.columns:

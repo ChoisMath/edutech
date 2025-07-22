@@ -574,39 +574,88 @@ async function handleDeleteCard() {
 
 // Excel 다운로드 처리
 async function handleDownloadExcel() {
-    const password = document.getElementById('downloadPassword').value;
+    const passwordElement = document.getElementById('downloadPassword');
+    if (!passwordElement) {
+        console.error('비밀번호 입력 요소를 찾을 수 없습니다.');
+        alert('페이지 오류가 발생했습니다.');
+        return;
+    }
     
+    const password = passwordElement.value;
     if (!password) {
         alert('비밀번호를 입력해주세요.');
         return;
     }
     
     try {
+        console.log('Excel 다운로드 요청 시작...');
         const response = await fetch('/api/download-excel', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ password: password })
         });
         
+        console.log('서버 응답:', response.status, response.statusText);
+        console.log('응답 헤더:', Object.fromEntries(response.headers.entries()));
+        
         if (response.ok) {
             const blob = await response.blob();
+            console.log('받은 blob 크기:', blob.size, 'bytes');
+            
+            if (blob.size === 0) {
+                throw new Error('빈 파일이 반환되었습니다.');
+            }
+            
+            if (!window.URL || !window.URL.createObjectURL) {
+                throw new Error('브라우저가 파일 다운로드를 지원하지 않습니다.');
+            }
+            
             const url = window.URL.createObjectURL(blob);
+            console.log('생성된 URL:', url);
+            
             const a = document.createElement('a');
             a.style.display = 'none';
             a.href = url;
-            a.download = `edutech_cards_${new Date().toISOString().slice(0,10)}.xlsx`;
+            
+            try {
+                const dateStr = new Date().toISOString().slice(0,10);
+                a.download = `edutech_cards_${dateStr}.xlsx`;
+                console.log('파일명:', a.download);
+            } catch (dateError) {
+                console.warn('날짜 형식 오류:', dateError);
+                a.download = 'edutech_cards.xlsx';
+            }
+            
             document.body.appendChild(a);
             a.click();
+            document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
+            
+            console.log('다운로드 완료');
             closeDownloadModal();
             alert('Excel 파일이 다운로드되었습니다!');
         } else {
-            const error = await response.json();
-            alert(error.error || 'Excel 다운로드에 실패했습니다.');
+            let errorMessage = 'Excel 다운로드에 실패했습니다.';
+            try {
+                const contentType = response.headers.get('Content-Type');
+                console.log('오류 응답 Content-Type:', contentType);
+                
+                if (contentType && contentType.includes('application/json')) {
+                    const error = await response.json();
+                    console.log('서버 오류:', error);
+                    errorMessage = error.error || errorMessage;
+                } else {
+                    const errorText = await response.text();
+                    console.log('서버 오류 텍스트:', errorText);
+                }
+            } catch (parseError) {
+                console.warn('오류 응답 파싱 실패:', parseError);
+            }
+            alert(errorMessage);
         }
     } catch (error) {
         console.error('Excel 다운로드 실패:', error);
-        alert('Excel 다운로드 중 오류가 발생했습니다.');
+        alert('Excel 다운로드 중 오류가 발생했습니다: ' + error.message);
     }
 }
 
