@@ -377,8 +377,8 @@ function openEditModal(cardId) {
     document.getElementById('editCardUrl').value = card.url || '';
     document.getElementById('editCardName').value = card.webpage_name || '';
     document.getElementById('editCardSummary').value = card.user_summary || '';
-    document.getElementById('editCardSubjects').value = Array.isArray(card.useful_subjects) ? card.useful_subjects.join(', ') : '';
-    document.getElementById('editCardKeyword').value = Array.isArray(card.keyword) ? card.keyword.join(', ') : '';
+    document.getElementById('editCardSubjects').value = Array.isArray(card.useful_subjects) ? card.useful_subjects.join(' ') : '';
+    document.getElementById('editCardKeyword').value = Array.isArray(card.keyword) ? card.keyword.join(' ') : '';
     document.getElementById('editCardMeaning').value = card.educational_meaning || '';
     document.getElementById('editPassword').value = '';
     

@@ -153,6 +153,11 @@
     margin-bottom: 50px; /* 푸터 높이만큼 여백 */
 }
 
+/* 모달 z-index 우선순위 설정 (admin 및 view 페이지 모든 모달) */
+#addModal, #detailModal, #editModal, #deleteModal, #downloadModal {
+    z-index: 10000 !important;
+}
+
 /* 검색바 한 줄 유지 스타일 */
 .search-container {
     min-width: 0; /* flex-shrink 허용 */
