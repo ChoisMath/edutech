@@ -81,7 +81,7 @@ function filterCards() {
         const queries = searchQuery.split(' ').map(q => q.trim().toLowerCase()).filter(q => q);
         filtered = filtered.filter(card => {
             const searchText = `${card.webpage_name} ${card.user_summary || ''} ${(card.useful_subjects || []).join(' ')} ${(card.keyword || []).join(' ')}`.toLowerCase();
-            return queries.some(query => searchText.includes(query));
+            return queries.every(query => searchText.includes(query));
         });
     }
     

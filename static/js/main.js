@@ -139,8 +139,8 @@ function filterCards() {
     if (!searchQuery) {
         filteredCards = cards;
     } else {
-        // 쉼표로 구분된 다중 키워드 검색 지원
-        const keywords = searchQuery.split(',').map(kw => kw.trim().toLowerCase()).filter(kw => kw);
+        // 띄어쓰기로 구분된 다중 키워드 검색 지원
+        const keywords = searchQuery.split(' ').map(kw => kw.trim().toLowerCase()).filter(kw => kw);
         
         if (keywords.length === 0) {
             filteredCards = cards;
@@ -546,9 +546,9 @@ async function handleAddCard(e) {
             url: document.getElementById('cardUrl').value,
             webpage_name: document.getElementById('cardName').value,
             user_summary: document.getElementById('cardSummary').value,
-            useful_subjects: document.getElementById('cardSubjects').value.split(',').map(s => s.trim()).filter(s => s),
+            useful_subjects: document.getElementById('cardSubjects').value.split(' ').map(s => s.trim()).filter(s => s),
             educational_meaning: document.getElementById('cardMeaning').value,
-            keyword: document.getElementById('cardKeyword').value.split(',').map(k => k.trim()).filter(k => k),
+            keyword: document.getElementById('cardKeyword').value.split(' ').map(k => k.trim()).filter(k => k),
             thumbnail_url: thumbnailUrl
         };
         
@@ -590,8 +590,8 @@ function openEditModal(card) {
     document.getElementById('editCardUrl').value = card.url;
     document.getElementById('editCardName').value = card.webpage_name;
     document.getElementById('editCardSummary').value = card.user_summary || '';
-    document.getElementById('editCardSubjects').value = card.useful_subjects ? card.useful_subjects.join(', ') : '';
-    document.getElementById('editCardKeyword').value = Array.isArray(card.keyword) ? card.keyword.join(', ') : (card.keyword || '');
+    document.getElementById('editCardSubjects').value = card.useful_subjects ? card.useful_subjects.join(' ') : '';
+    document.getElementById('editCardKeyword').value = Array.isArray(card.keyword) ? card.keyword.join(' ') : (card.keyword || '');
     document.getElementById('editCardMeaning').value = card.educational_meaning || '';
     
     // 기존 썸네일 설정
@@ -655,9 +655,9 @@ async function handleEditCard(e) {
             url: document.getElementById('editCardUrl').value,
             webpage_name: document.getElementById('editCardName').value,
             user_summary: document.getElementById('editCardSummary').value,
-            useful_subjects: document.getElementById('editCardSubjects').value.split(',').map(s => s.trim()).filter(s => s),
+            useful_subjects: document.getElementById('editCardSubjects').value.split(' ').map(s => s.trim()).filter(s => s),
             educational_meaning: document.getElementById('editCardMeaning').value,
-            keyword: document.getElementById('editCardKeyword').value.split(',').map(k => k.trim()).filter(k => k),
+            keyword: document.getElementById('editCardKeyword').value.split(' ').map(k => k.trim()).filter(k => k),
             thumbnail_url: document.getElementById('editThumbnailUrl').value
         };
         
