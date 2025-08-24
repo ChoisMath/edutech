@@ -1,0 +1,524 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- 고정 헤더 및 검색바 -->
+<div class="fixed-search py-4">
+    <div class="container mx-auto px-4">
+        <!-- 검색바 -->
+        <div class="bg-white rounded-lg shadow-md p-4 mb-4">
+            <div class="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center">
+                <!-- 첫 번째 줄: 레이블과 검색창 -->
+                <div class="flex flex-row gap-4 items-center flex-1">
+                    <div class="flex-shrink-0">
+                        <span class="text-lg font-semibold text-gray-800">EduTech</span>
+                    </div>
+                    <div class="flex-1">
+                        <input
+                            type="text"
+                            id="searchInput"
+                            placeholder="(다중검색 띄어쓰기) 교과, 키워드, 제목"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                    </div>
+                </div>
+                
+                <!-- 두 번째 줄/오른쪽: 버튼들 -->
+                <div class="flex gap-3 justify-between lg:justify-end lg:flex-shrink-0">
+                    <button 
+                        id="downloadExcelButton"
+                        class="flex-1 lg:flex-none px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center justify-center gap-2"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <span class="hidden sm:inline">Excel 다운로드</span>
+                        <span class="sm:hidden">Excel</span>
+                    </button>
+                    <a href="/" class="flex-1 lg:flex-none px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors flex items-center justify-center">
+                        <span class="hidden sm:inline">일반 페이지로 이동</span>
+                        <span class="sm:hidden">일반 페이지</span>
+                    </a>
+                    <button
+                        id="addButton"
+                        class="flex-1 lg:flex-none px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
+                        aria-label="새 에듀테크 카드 추가"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        <span class="hidden sm:inline">추가</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 메인 콘텐츠 -->
+<div class="min-h-screen bg-gray-50 content-with-fixed-header content-with-fixed-footer">
+    <div class="container mx-auto px-4 py-8">
+        <!-- 드래그 모드 컨트롤 -->
+        <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+            <div class="flex items-center justify-between">
+                <label class="flex items-center cursor-pointer">
+                    <input type="checkbox" id="dragModeToggle" class="mr-3 w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500">
+                    <span class="text-sm font-medium text-gray-700">카드 순서 편집 모드</span>
+                </label>
+                <button 
+                    id="saveOrderButton" 
+                    class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2" 
+                    disabled
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    순서 저장
+                </button>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">편집 모드를 활성화하면 카드를 드래그하여 순서를 변경할 수 있습니다.</p>
+        </div>
+
+        <!-- 카드 그리드 -->
+        <div id="cardsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-8">
+            <!-- 카드들이 여기에 동적으로 추가됩니다 -->
+        </div>
+
+        <!-- 빈 상태 메시지 -->
+        <div id="emptyState" class="col-span-full text-center py-12 hidden">
+            <p class="text-gray-500 text-lg">등록된 에듀테크 카드가 없습니다.</p>
+            <p class="text-gray-400 text-sm mt-2">상단의 추가 버튼을 눌러 새로운 카드를 추가해보세요!</p>
+        </div>
+
+    </div>
+</div>
+
+<!-- 추가 카드 모달 -->
+<div id="addModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-lg max-w-md w-full max-h-96 h-auto flex flex-col modal-container">
+        <!-- 고정 헤더 -->
+        <div class="p-6 pb-0 flex-shrink-0">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-gray-800">새 에듀테크 카드 추가</h2>
+                <button id="closeModal" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- 스크롤 가능한 내용 영역 -->
+        <div class="px-6 modal-scroll-area">
+            <form id="addCardForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">URL *</label>
+                        <input
+                            type="url"
+                            id="cardUrl"
+                            required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="https://example.com"
+                        />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">웹페이지 이름 *</label>
+                        <input
+                            type="text"
+                            id="cardName"
+                            required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="에듀테크 도구 이름"
+                        />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">간단 요약</label>
+                        <textarea
+                            id="cardSummary"
+                            rows="3"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="이 에듀테크 도구에 대한 간단한 설명"
+                        ></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">유용한 교과목</label>
+                        <input
+                            type="text"
+                            id="cardSubjects"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="수학 과학 영어 (띄어쓰기로 구분)"
+                        />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">키워드</label>
+                        <input
+                            type="text"
+                            id="cardKeyword"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="AI 코딩 게임화 협업 (띄어쓰기로 구분)"
+                        />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">교육적 의미</label>
+                        <textarea
+                            id="cardMeaning"
+                            rows="3"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="이 도구의 교육적 가치와 의미"
+                        ></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">썸네일</label>
+                        <div class="space-y-3">
+                            <!-- 드래그 앤 드롭 영역 -->
+                            <div
+                                id="addThumbnailDropzone"
+                                class="w-full h-32 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                            >
+                                <svg class="w-8 h-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                                <p class="text-sm text-gray-600">
+                                    <span class="font-medium">클릭하여 업로드</span> 또는 드래그 앤 드롭
+                                </p>
+                                <p class="text-xs text-gray-500">JPG, PNG, GIF (최대 1MB)</p>
+                            </div>
+
+                            <!-- 파일 입력 (숨김) -->
+                            <input
+                                type="file"
+                                id="addThumbnailFile"
+                                accept="image/*"
+                                class="hidden"
+                            />
+
+                            <!-- 업로드된 이미지 미리보기 -->
+                            <div id="addThumbnailPreview" class="hidden text-center">
+                                <p class="text-sm text-gray-600 mb-2">썸네일 미리보기:</p>
+                                <div class="flex justify-center">
+                                    <img id="addThumbnailPreviewImg" class="max-w-full h-auto max-h-32 rounded-md border" src="" alt="썸네일 미리보기">
+                                </div>
+                                <button
+                                    type="button"
+                                    id="addRemoveThumbnail"
+                                    class="mt-2 text-sm text-red-600 hover:text-red-800"
+                                >
+                                    이미지 제거
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+            </form>
+        </div>
+
+        <!-- 고정 버튼 영역 -->
+        <div class="p-6 pt-4 flex-shrink-0 border-t">
+            <div class="flex gap-3">
+                <button
+                    type="button"
+                    id="cancelButton"
+                    class="flex-1 px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+                >
+                    취소
+                </button>
+                <button
+                    type="submit"
+                    form="addCardForm"
+                    id="submitButton"
+                    class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                >
+                    추가하기
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 상세 카드 모달 -->
+<div id="detailModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-lg max-w-2xl w-full max-h-96 h-auto flex flex-col modal-container">
+        <div class="p-6 modal-scroll-area modal-content">
+            <div class="modal-body">
+                <div class="flex justify-between items-center mb-4">
+                    <div></div>
+                    <button id="closeDetailModal" class="text-gray-500 hover:text-gray-700">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="detailContent">
+                    <!-- 상세 내용이 여기에 동적으로 추가됩니다 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 편집 모달 -->
+<div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-lg max-w-md w-full max-h-96 h-auto flex flex-col modal-container">
+        <!-- 고정 헤더 -->
+        <div class="p-6 pb-0 flex-shrink-0">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-gray-800">에듀테크 카드 편집</h2>
+                <button id="closeEditModal" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                <label class="block text-sm font-medium text-gray-700 mb-1">편집 비밀번호 *</label>
+                <input
+                    type="password"
+                    id="editPassword"
+                    required
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="편집 비밀번호를 입력하세요"
+                />
+            </div>
+        </div>
+
+        <!-- 스크롤 가능한 내용 영역 -->
+        <div class="px-6 modal-scroll-area">
+            <form id="editCardForm" class="space-y-4">
+                    <input type="hidden" id="editCardId">
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">URL *</label>
+                        <input
+                            type="url"
+                            id="editCardUrl"
+                            required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="https://example.com"
+                        />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">웹페이지 이름 *</label>
+                        <input
+                            type="text"
+                            id="editCardName"
+                            required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="에듀테크 도구 이름"
+                        />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">간단 요약</label>
+                        <textarea
+                            id="editCardSummary"
+                            rows="3"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="이 에듀테크 도구에 대한 간단한 설명"
+                        ></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">유용한 교과목</label>
+                        <input
+                            type="text"
+                            id="editCardSubjects"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="수학 과학 영어 (띄어쓰기로 구분)"
+                        />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">키워드</label>
+                        <input
+                            type="text"
+                            id="editCardKeyword"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="AI 코딩 게임화 협업 (띄어쓰기로 구분)"
+                        />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">교육적 의미</label>
+                        <textarea
+                            id="editCardMeaning"
+                            rows="3"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="이 도구의 교육적 가치와 의미"
+                        ></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">썸네일</label>
+                        <div class="space-y-3">
+                            <!-- 현재 썸네일 표시 -->
+                            <div id="editCurrentThumbnail" class="hidden text-center">
+                                <p class="text-sm text-gray-600 mb-2">현재 썸네일:</p>
+                                <div class="flex justify-center">
+                                    <img id="editCurrentThumbnailImg" class="max-w-full h-auto max-h-32 rounded-md border" src="" alt="현재 썸네일">
+                                </div>
+                            </div>
+
+                            <!-- 드래그 앤 드롭 영역 -->
+                            <div
+                                id="editThumbnailDropzone"
+                                class="w-full h-32 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                            >
+                                <svg class="w-8 h-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                                <p class="text-sm text-gray-600">
+                                    <span class="font-medium">클릭하여 업로드</span> 또는 드래그 앤 드롭
+                                </p>
+                                <p class="text-xs text-gray-500">JPG, PNG, GIF (최대 1MB)</p>
+                            </div>
+
+                            <!-- 파일 입력 (숨김) -->
+                            <input
+                                type="file"
+                                id="editThumbnailFile"
+                                accept="image/*"
+                                class="hidden"
+                            />
+
+                            <!-- 업로드된 이미지 미리보기 -->
+                            <div id="editThumbnailPreview" class="hidden text-center">
+                                <p class="text-sm text-gray-600 mb-2">새 썸네일 미리보기:</p>
+                                <div class="flex justify-center">
+                                    <img id="editThumbnailPreviewImg" class="max-w-full h-auto max-h-32 rounded-md border" src="" alt="썸네일 미리보기">
+                                </div>
+                                <button
+                                    type="button"
+                                    id="editRemoveThumbnail"
+                                    class="mt-2 text-sm text-red-600 hover:text-red-800"
+                                >
+                                    이미지 제거
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+            </form>
+        </div>
+
+        <!-- 고정 버튼 영역 -->
+        <div class="p-6 pt-4 flex-shrink-0 border-t">
+            <div class="flex gap-3">
+                <button
+                    type="button"
+                    id="cancelEditButton"
+                    class="flex-1 px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+                >
+                    취소
+                </button>
+                <button
+                    type="submit"
+                    form="editCardForm"
+                    id="submitEditButton"
+                    class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                >
+                    수정하기
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 삭제 확인 모달 -->
+<div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 hidden">
+    <div class="bg-white rounded-lg max-w-md w-full max-h-96 h-auto modal-container">
+        <div class="p-6 modal-content">
+            <div class="modal-body">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-800">카드 삭제</h2>
+                    <button id="closeDeleteModal" class="text-gray-500 hover:text-gray-700">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="mb-4">
+                    <p class="text-gray-600 mb-4">이 카드를 삭제하려면 관리자 비밀번호를 입력하세요.</p>
+                    <input
+                        type="password"
+                        id="deletePassword"
+                        placeholder="관리자 비밀번호"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                    />
+                    <input type="hidden" id="deleteCardId">
+                </div>
+
+                <div class="flex gap-3">
+                    <button
+                        id="cancelDeleteButton"
+                        class="flex-1 px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+                    >
+                        취소
+                    </button>
+                    <button
+                        id="confirmDeleteButton"
+                        class="flex-1 px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+                    >
+                        삭제하기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Excel 다운로드 모달 -->
+<div id="downloadModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 hidden">
+    <div class="bg-white rounded-lg max-w-md w-full max-h-96 h-auto modal-container">
+        <div class="p-6 modal-content">
+            <div class="modal-body">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-800">Excel 다운로드</h2>
+                    <button id="closeDownloadModal" class="text-gray-500 hover:text-gray-700">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="mb-4">
+                    <p class="text-gray-600 mb-4">데이터베이스를 Excel로 다운로드하려면 관리자 비밀번호를 입력하세요.</p>
+                    <input
+                        type="password"
+                        id="downloadPassword"
+                        placeholder="관리자 비밀번호"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                </div>
+
+                <div class="flex gap-3">
+                    <button
+                        id="cancelDownloadButton"
+                        class="flex-1 px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+                    >
+                        취소
+                    </button>
+                    <button
+                        id="confirmDownloadButton"
+                        class="flex-1 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
+                    >
+                        다운로드
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+{% endblock %}

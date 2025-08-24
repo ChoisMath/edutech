@@ -1,0 +1,397 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center mb-8 text-gray-800">
+            Chois_EduCard
+        </h1>
+        
+        <!-- 검색바 -->
+        <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+            <div class="flex flex-col md:flex-row gap-4">
+                <div class="flex-1">
+                    <input
+                        type="text"
+                        id="searchInput"
+                        placeholder="에듀테크 이름, 키워드, 교과목으로 검색... (쉼표로 구분하여 다중 검색 가능)"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                </div>
+                
+                <div class="flex gap-2">
+                    <button id="filterAll" class="px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-blue-500 text-white">
+                        전체
+                    </button>
+                    <button id="filterSubject" class="px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300">
+                        교과별
+                    </button>
+                    <button id="filterKeyword" class="px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300">
+                        키워드별
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 카드 그리드 -->
+        <div id="cardsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-8">
+            <!-- 카드들이 여기에 동적으로 추가됩니다 -->
+        </div>
+
+        <!-- 빈 상태 메시지 -->
+        <div id="emptyState" class="col-span-full text-center py-12 hidden">
+            <p class="text-gray-500 text-lg">등록된 에듀테크 카드가 없습니다.</p>
+            <p class="text-gray-400 text-sm mt-2">우측 하단 + 버튼을 눌러 새로운 카드를 추가해보세요!</p>
+        </div>
+
+        <!-- 플로팅 추가 버튼 -->
+        <button
+            id="addButton"
+            class="fixed bottom-6 right-6 w-14 h-14 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center z-50"
+            aria-label="새 에듀테크 카드 추가"
+        >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+        </button>
+    </div>
+</div>
+
+<!-- 추가 카드 모달 -->
+<div id="addModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 hidden">
+    <div class="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto modal-container">
+        <div class="p-6 modal-content">
+            <div class="modal-body">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-800">새 에듀테크 카드 추가</h2>
+                <button id="closeModal" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div id="duplicateWarning" class="mb-4 p-3 bg-yellow-100 border border-yellow-300 rounded-md hidden">
+                <p class="text-sm text-yellow-800 font-medium">유사한 URL의 카드가 발견되었습니다:</p>
+                <div id="duplicateList"></div>
+            </div>
+
+            <form id="addCardForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">URL *</label>
+                    <input
+                        type="url"
+                        id="cardUrl"
+                        required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="https://example.com"
+                    />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">웹페이지 이름 *</label>
+                    <input
+                        type="text"
+                        id="cardName"
+                        required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="에듀테크 도구 이름"
+                    />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">간단 요약</label>
+                    <textarea
+                        id="cardSummary"
+                        rows="3"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="이 에듀테크 도구에 대한 간단한 설명"
+                    ></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">유용한 교과목</label>
+                    <input
+                        type="text"
+                        id="cardSubjects"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="수학, 과학, 영어 (쉼표로 구분)"
+                    />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">키워드</label>
+                    <input
+                        type="text"
+                        id="cardKeyword"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="AI, 코딩, 게임화, 협업 (쉼표로 구분)"
+                    />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">교육적 의미</label>
+                    <textarea
+                        id="cardMeaning"
+                        rows="3"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="이 도구의 교육적 가치와 의미"
+                    ></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">썸네일 이미지</label>
+                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-blue-400 transition-colors">
+                        <div class="space-y-1 text-center">
+                            <div id="thumbnailPreview" class="hidden">
+                                <img id="previewImage" src="" alt="미리보기" class="mx-auto h-32 w-32 object-cover rounded-lg shadow-md">
+                                <button type="button" id="removeThumbnail" class="mt-2 text-sm text-red-600 hover:text-red-800">
+                                    이미지 제거
+                                </button>
+                            </div>
+                            <div id="uploadArea" class="text-center">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <div class="flex text-sm text-gray-600">
+                                    <label for="thumbnailFile" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                                        <span>파일 선택</span>
+                                        <input id="thumbnailFile" name="thumbnail" type="file" class="sr-only" accept="image/*">
+                                    </label>
+                                    <p class="pl-1">또는 드래그 앤 드롭</p>
+                                </div>
+                                <p class="text-xs text-gray-500">PNG, JPG, GIF 최대 16MB</p>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="thumbnailUrl" name="thumbnail_url" value="">
+                </div>
+
+                <div class="flex gap-3 pt-4">
+                    <button
+                        type="button"
+                        id="cancelButton"
+                        class="flex-1 px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+                    >
+                        취소
+                    </button>
+                    <button
+                        type="submit"
+                        id="submitButton"
+                        class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                    >
+                        추가하기
+                    </button>
+                </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 상세 카드 모달 -->
+<div id="detailModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 hidden">
+    <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto modal-container">
+        <div class="p-6 modal-content">
+            <div class="modal-body">
+                <div class="flex justify-between items-center mb-4">
+                    <div></div> <!-- 제목은 이제 상세 내용에서 표시 -->
+                    <button id="closeDetailModal" class="text-gray-500 hover:text-gray-700">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="detailContent">
+                    <!-- 상세 내용이 여기에 동적으로 추가됩니다 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 편집 모달 -->
+<div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 hidden">
+    <div class="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto modal-container">
+        <div class="p-6 modal-content">
+            <div class="modal-body">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-800">에듀테크 카드 편집</h2>
+                    <button id="closeEditModal" class="text-gray-500 hover:text-gray-700">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- 편집 비밀번호 입력 -->
+                <div class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">편집 비밀번호 *</label>
+                    <input
+                        type="password"
+                        id="editPassword"
+                        required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="편집 비밀번호를 입력하세요"
+                    />
+                </div>
+
+                <form id="editCardForm" class="space-y-4">
+                <input type="hidden" id="editCardId">
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">URL *</label>
+                    <input
+                        type="url"
+                        id="editCardUrl"
+                        required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="https://example.com"
+                    />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">웹페이지 이름 *</label>
+                    <input
+                        type="text"
+                        id="editCardName"
+                        required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="에듀테크 도구 이름"
+                    />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">간단 요약</label>
+                    <textarea
+                        id="editCardSummary"
+                        rows="3"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="이 에듀테크 도구에 대한 간단한 설명"
+                    ></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">유용한 교과목</label>
+                    <input
+                        type="text"
+                        id="editCardSubjects"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="수학, 과학, 영어 (쉼표로 구분)"
+                    />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">키워드</label>
+                    <input
+                        type="text"
+                        id="editCardKeyword"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="AI, 코딩, 게임화, 협업 (쉼표로 구분)"
+                    />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">교육적 의미</label>
+                    <textarea
+                        id="editCardMeaning"
+                        rows="3"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="이 도구의 교육적 가치와 의미"
+                    ></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">썸네일 이미지</label>
+                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-blue-400 transition-colors">
+                        <div class="space-y-1 text-center">
+                            <div id="editThumbnailPreview" class="hidden">
+                                <img id="editPreviewImage" src="" alt="미리보기" class="mx-auto h-32 w-32 object-cover rounded-lg shadow-md">
+                                <button type="button" id="editRemoveThumbnail" class="mt-2 text-sm text-red-600 hover:text-red-800">
+                                    이미지 제거
+                                </button>
+                            </div>
+                            <div id="editUploadArea" class="text-center">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <div class="flex text-sm text-gray-600">
+                                    <label for="editThumbnailFile" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                                        <span>파일 선택</span>
+                                        <input id="editThumbnailFile" name="thumbnail" type="file" class="sr-only" accept="image/*">
+                                    </label>
+                                    <p class="pl-1">또는 드래그 앤 드롭</p>
+                                </div>
+                                <p class="text-xs text-gray-500">PNG, JPG, GIF 최대 16MB</p>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="editThumbnailUrl" name="thumbnail_url" value="">
+                </div>
+
+                <div class="flex gap-3 pt-4">
+                    <button
+                        type="button"
+                        id="cancelEditButton"
+                        class="flex-1 px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+                    >
+                        취소
+                    </button>
+                    <button
+                        type="submit"
+                        id="submitEditButton"
+                        class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                    >
+                        수정하기
+                    </button>
+                </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 삭제 확인 모달 -->
+<div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 hidden">
+    <div class="bg-white rounded-lg max-w-md w-full modal-container">
+        <div class="p-6 modal-content">
+            <div class="modal-body">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-800">카드 삭제</h2>
+                    <button id="closeDeleteModal" class="text-gray-500 hover:text-gray-700">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="mb-4">
+                    <p class="text-gray-600 mb-4">이 카드를 삭제하려면 관리자 비밀번호를 입력하세요.</p>
+                    <input
+                        type="password"
+                        id="deletePassword"
+                        placeholder="관리자 비밀번호"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                    />
+                    <input type="hidden" id="deleteCardId">
+                </div>
+
+                <div class="flex gap-3">
+                    <button
+                        id="cancelDeleteButton"
+                        class="flex-1 px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+                    >
+                        취소
+                    </button>
+                    <button
+                        id="confirmDeleteButton"
+                        class="flex-1 px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+                    >
+                        삭제하기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
