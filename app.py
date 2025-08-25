@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import os
 import sys
-import json
 import logging
 
 # Configure logging for Railway
@@ -29,8 +28,6 @@ try:
     from flask import Flask, render_template, request, jsonify, send_from_directory
     from werkzeug.utils import secure_filename
     import uuid
-    import requests
-    import re
     from urllib.parse import urlparse
     from datetime import datetime
     logger.info("✅ Flask 모듈 import 완료")
@@ -140,10 +137,15 @@ def cards():
             search = request.args.get('search', '')
             category = request.args.get('category', '')
             subject = request.args.get('subject', '')
+            admin_view = request.args.get('admin', '')  # Admin can see all cards
             
-            print(f"검색 조건 - search: '{search}', category: '{category}', subject: '{subject}'")
+            print(f"검색 조건 - search: '{search}', category: '{category}', subject: '{subject}', admin: '{admin_view}'")
             
-            query = supabase.table('edutech_cards').select('*').eq('view', 1)
+            # Admin can see all cards, regular users only see approved ones
+            if admin_view == 'true':
+                query = supabase.table('edutech_cards').select('*')
+            else:
+                query = supabase.table('edutech_cards').select('*').eq('view', 1)
             
             if search:
                 query = query.or_(f"webpage_name.ilike.%{search}%,user_summary.ilike.%{search}%,ai_summary.ilike.%{search}%")
@@ -275,8 +277,13 @@ def card_operations(card_id):
             if thumbnail_url is not None:
                 update_data['thumbnail_url'] = thumbnail_url
             
-            # 먼저 카드가 존재하고 view=1인지 확인
-            check_result = supabase.table('edutech_cards').select('id').eq('id', card_id).eq('view', 1).execute()
+            # view 필드 처리 (관리자 승인/거부)
+            view_status = data.get('view')
+            if view_status is not None:
+                update_data['view'] = int(view_status)
+            
+            # 먼저 카드가 존재하는지 확인 (view 상태와 무관하게)
+            check_result = supabase.table('edutech_cards').select('id').eq('id', card_id).execute()
             if not check_result.data:
                 return jsonify({'error': 'Card not found'}), 404
             
@@ -299,10 +306,10 @@ def card_operations(card_id):
             if password != ADMIN_PASSWORD:
                 return jsonify({'error': '비밀번호가 일치하지 않습니다'}), 401
             
-            # 먼저 카드가 존재하고 view=1인지 확인
-            check_result = supabase.table('edutech_cards').select('id, view').eq('id', card_id).eq('view', 1).execute()
+            # 먼저 카드가 존재하는지 확인 (view 상태와 무관하게)
+            check_result = supabase.table('edutech_cards').select('id, view').eq('id', card_id).execute()
             if not check_result.data:
-                return jsonify({'error': 'Card not found or already hidden'}), 404
+                return jsonify({'error': 'Card not found'}), 404
             
             # 카드를 숨기기 (view=0으로 설정)
             result = supabase.table('edutech_cards').update({'view': 0}).eq('id', card_id).execute()

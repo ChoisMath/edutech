@@ -78,7 +78,7 @@ function initializeEventListeners() {
 async function fetchCards() {
     try {
         console.log('=== 카드 데이터 요청 시작 ===');
-        const response = await fetch('/api/cards');
+        const response = await fetch('/api/cards?admin=true');
         console.log('응답 상태:', response.status);
         
         if (!response.ok) {
@@ -89,6 +89,7 @@ async function fetchCards() {
         console.log('받은 데이터:', data);
         console.log('카드 수:', Array.isArray(data) ? data.length : 0);
         
+        // Admin can see all cards (view=0 and view=1)
         cards = Array.isArray(data) ? data : [];
         filterCards();
     } catch (error) {
@@ -173,9 +174,11 @@ function createCardHTML(card) {
     
     return `
         <div class="card-item bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden relative group ${isDragModeEnabled ? 'drag-mode-enabled border-2 border-blue-200' : ''}" data-card-id="${card.id}">
+            <!-- 승인 상태 표시 -->\n            <div class="absolute top-2 left-2 z-20">\n                <span class="px-2 py-1 text-xs font-medium rounded-full ${card.view === 1 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">\n                    ${card.view === 1 ? '승인됨' : '대기중'}\n                </span>\n            </div>
+            
             <!-- 드래그 핸들 -->
             ${isDragModeEnabled && !searchQuery && card.hasOwnProperty('sort_order') ? `
-                <div class="drag-handle absolute top-2 left-2 opacity-100 transition-opacity duration-200 z-10 cursor-move">
+                <div class="drag-handle absolute top-2 left-20 opacity-100 transition-opacity duration-200 z-10 cursor-move">
                     <div class="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 shadow-lg" title="드래그하여 순서 변경">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
@@ -382,6 +385,14 @@ function openEditModal(cardId) {
     document.getElementById('editCardMeaning').value = card.educational_meaning || '';
     document.getElementById('editPassword').value = '';
     
+    // 승인 상태 설정
+    const viewStatus = card.view || 0;
+    if (viewStatus === 1) {
+        document.getElementById('editViewApproved').checked = true;
+    } else {
+        document.getElementById('editViewPending').checked = true;
+    }
+    
     // 썸네일 관련 요소 초기화
     resetEditThumbnail();
     
@@ -480,6 +491,10 @@ async function handleEditCard(e) {
     const cardId = document.getElementById('editCardId').value;
     const password = document.getElementById('editPassword').value;
     
+    // 승인 상태 가져오기
+    const viewStatusRadio = document.querySelector('input[name="editViewStatus"]:checked');
+    const viewStatus = viewStatusRadio ? parseInt(viewStatusRadio.value) : 1;
+    
     let cardData = {
         password: password,
         url: document.getElementById('editCardUrl').value,
@@ -487,7 +502,8 @@ async function handleEditCard(e) {
         user_summary: document.getElementById('editCardSummary').value,
         useful_subjects: document.getElementById('editCardSubjects').value.split(' ').map(s => s.trim()).filter(s => s),
         keyword: document.getElementById('editCardKeyword').value.split(' ').map(k => k.trim()).filter(k => k),
-        educational_meaning: document.getElementById('editCardMeaning').value
+        educational_meaning: document.getElementById('editCardMeaning').value,
+        view: viewStatus
     };
     
     try {
