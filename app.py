@@ -209,6 +209,7 @@ def cards():
                 'educational_meaning': educational_meaning,
                 'keyword': keyword,
                 'thumbnail_url': thumbnail_url,
+                'view': data.get('view', 1),  # 요청에서 view 값 가져오기, 기본값은 1 (admin에서 직접 추가시)
             }
             
             # sort_order 필드가 존재하는지 확인하고 설정
