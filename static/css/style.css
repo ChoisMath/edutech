@@ -154,7 +154,7 @@
 }
 
 /* 모달 z-index 우선순위 설정 (admin 및 view 페이지 모든 모달) */
-#addModal, #detailModal, #editModal, #deleteModal, #downloadModal {
+#addModal, #detailModal, #editModal, #deleteModal, #downloadModal, #requestModal {
     z-index: 10000 !important;
 }
 
